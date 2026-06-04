@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V-Care / Sunshine Pharmacy Drug Reference</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/7.0.0/fuse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --brand: #7B2D3E; --brand-light: #f9f0f2;
+    --accent: #2E5B8A; --accent-light: #eaf1f9;
+    --green: #2E7D52; --green-light: #eaf4ee;
+    --amber: #9A6000; --amber-light: #fff8ea;
+    --red: #c0392b; --red-light: #fdf0ee;
+    --gray: #f4f4f2; --border: #e0ddd8;
+    --text: #1a1a1a; --text-muted: #666; --text-light: #999;
+    --radius: 8px; --radius-lg: 12px;
+    --shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; color: var(--text); background: #f0ede8; min-height: 100vh; }
+
+  .header { background: var(--brand); color: white; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo-circle { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+  .header-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .btn { padding: 7px 14px; border-radius: var(--radius); border: 1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.15); color: white; font-size: 12px; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+  .btn:hover { background: rgba(255,255,255,0.25); }
+  .btn-white { background: white; color: var(--brand); border-color: white; }
+  .btn-white:hover { background: #f5f5f5; color: var(--brand); }
+
+  .settings-panel { display: none; background: white; border-bottom: 1px solid var(--border); padding: 14px 24px; }
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; max-width: 860px; }
+  .settings-grid label { font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px; }
+  .settings-grid input { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; }
+  .settings-hint { font-size: 11px; color: var(--text-light); margin-top: 6px; grid-column: 1 / -1; }
+
+  .sync-bar { background: #eaf1f9; border-bottom: 1px solid #b5d0ec; padding: 9px 24px; font-size: 13px; color: #1a3f6b; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .sync-bar.error { background: var(--red-light); border-color: #f5b8b8; color: var(--red); }
+  .sync-bar.success { background: var(--green-light); border-color: #9fd4b4; color: var(--green); }
+  .spinner { width: 14px; height: 14px; border: 2px solid rgba(0,0,0,0.15); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .search-bar { background: white; border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; position: sticky; top: 0; z-index: 100; }
+  .search-wrap { flex: 1; min-width: 220px; position: relative; }
+  .search-wrap input { width: 100%; padding: 9px 14px 9px 36px; border: 1.5px solid var(--border); border-radius: var(--radius); font-size: 14px; outline: none; transition: border-color 0.15s; }
+  .search-wrap input:focus { border-color: var(--brand); }
+  .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-light); font-size: 15px; }
+  .filter-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  select { padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; background: white; color: var(--text); cursor: pointer; }
+  .badge-count { background: var(--brand); color: white; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
+
+  .stats-row { display: flex; gap: 10px; padding: 12px 24px; background: white; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .stat-card { flex: 1; min-width: 90px; background: var(--gray); border-radius: var(--radius); padding: 8px 12px; }
+  .stat-card .num { font-size: 20px; font-weight: 600; color: var(--brand); }
+  .stat-card .lbl { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+  .main { padding: 16px 24px; }
+  .drug-grid { display: grid; gap: 12px; }
+  .drug-card { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; transition: box-shadow 0.15s; }
+  .drug-card:hover { box-shadow: var(--shadow); }
+  .card-header { padding: 12px 16px; background: var(--gray); border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+  .drug-name-block { flex: 1; }
+  .drug-name { font-size: 15px; font-weight: 600; color: var(--brand); }
+  .header-badges { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .badge-cat { background: var(--brand-light); color: var(--brand); }
+  .badge-savings { background: var(--green-light); color: var(--green); }
+  .badge-mfr { background: var(--accent-light); color: var(--accent); }
+  .badge-loc { background: #fff3e0; color: #8a4a00; font-size: 10px; }
+  .badge-pa-yes { background: var(--red-light); color: var(--red); }
+  .badge-pa-sometimes { background: var(--amber-light); color: var(--amber); }
+  .badge-pa-rarely { background: var(--green-light); color: var(--green); }
+  .expand-icon { color: var(--text-muted); font-size: 16px; transition: transform 0.2s; flex-shrink: 0; margin-top: 2px; }
+  .expand-icon.open { transform: rotate(180deg); }
+
+  .card-body { display: none; padding: 14px 16px; }
+  .card-body.open { display: block; }
+
+  .section-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; margin-top: 14px; }
+  .section-label:first-child { margin-top: 0; }
+
+  .price-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+  .price-cell { background: var(--gray); border-radius: var(--radius); padding: 8px 10px; }
+  .price-label { font-size: 10px; color: var(--text-muted); margin-bottom: 3px; }
+  .price-val { font-size: 16px; font-weight: 600; color: var(--text); }
+  .price-val.free { color: var(--green); }
+  .price-val.na { color: var(--text-light); font-size: 13px; font-weight: 400; }
+
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .info-block { background: var(--gray); border-radius: var(--radius); padding: 10px 12px; }
+  .info-block.full { grid-column: 1 / -1; }
+  .ib-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+  .ib-text { font-size: 13px; color: var(--text); line-height: 1.5; white-space: pre-wrap; }
+  .pa-yes { color: var(--red); font-weight: 600; }
+  .pa-sometimes { color: var(--amber); font-weight: 600; }
+  .pa-rarely { color: var(--green); font-weight: 600; }
+  .loc-list { display: flex; gap: 5px; flex-wrap: wrap; }
+
+  /* INLINE EDIT */
+  .edit-panel { background: #fafafa; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-top: 12px; display: none; }
+  .edit-panel.open { display: block; }
+  .edit-panel-title { font-size: 13px; font-weight: 600; color: var(--brand); margin-bottom: 10px; }
+  .edit-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .edit-form .full { grid-column: 1 / -1; }
+  .edit-form label { font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 3px; }
+  .edit-form input, .edit-form textarea, .edit-form select { width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; background: white; }
+  .edit-form textarea { min-height: 65px; resize: vertical; }
+  .edit-actions { display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end; align-items: center; }
+  .edit-status { font-size: 12px; color: var(--text-muted); flex: 1; }
+  .btn-primary { background: var(--brand); color: white; border: none; padding: 8px 18px; border-radius: var(--radius); font-size: 13px; cursor: pointer; }
+  .btn-primary:hover { background: #9a3a4e; }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-secondary { background: white; color: var(--text); border: 1px solid var(--border); padding: 8px 18px; border-radius: var(--radius); font-size: 13px; cursor: pointer; }
+
+  .no-results { text-align: center; padding: 48px 24px; color: var(--text-muted); }
+  .loading-grid { display: grid; gap: 12px; }
+  .skeleton { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); height: 72px; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: white; padding: 10px 18px; border-radius: var(--radius); font-size: 13px; z-index: 9999; opacity: 0; transition: opacity 0.3s; pointer-events: none; max-width: 320px; }
+  .toast.show { opacity: 1; }
+  .toast.success { background: var(--green); }
+  .toast.error { background: var(--red); }
+
+  @media (max-width: 600px) {
+    .header, .search-bar, .main, .stats-row { padding: 12px; }
+    .info-grid, .edit-form { grid-template-columns: 1fr; }
+    .settings-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo-circle">VCP</div>
+    <div>
+      <div style="font-size:17px;font-weight:600;">V-Care / Sunshine Pharmacy</div>
+      <div style="font-size:11px;opacity:0.75;margin-top:2px;">Internal Drug Reference — Staff Use Only</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="btn" onclick="refreshData()" id="refreshBtn" title="Re-fetch latest data from Google Sheets">↻ Refresh</button>
+    <button class="btn" onclick="toggleSettings()">⚙ Settings</button>
+    <button class="btn" onclick="exportExcel()">↓ Export Excel</button>
+  </div>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div class="settings-panel" id="settingsPanel">
+  <div class="settings-grid">
+    <div>
+      <label>Google Apps Script URL (your live data source)</label>
+      <input type="url" id="cfgApi" placeholder="https://script.google.com/macros/s/.../exec" />
+    </div>
+    <div>
+      <label>Secret key (must match your Apps Script)</label>
+      <input type="password" id="cfgKey" placeholder="Your secret key" />
+    </div>
+    <button class="btn-primary" onclick="saveSettings()">Save &amp; Reload</button>
+    <div class="settings-hint">Teams Webhook URL (optional — paste to get a Teams notification on every edit submission)</div>
+    <div style="grid-column:1/3">
+      <input type="url" id="cfgWebhook" placeholder="https://outlook.office.com/webhook/..." />
+    </div>
+    <button class="btn-secondary" onclick="saveSettings()">Save</button>
+  </div>
+</div>
+
+<!-- SYNC STATUS BAR -->
+<div class="sync-bar" id="syncBar">
+  <div class="spinner" id="syncSpinner"></div>
+  <span id="syncMsg">Connecting to Google Sheets...</span>
+</div>
+
+<!-- SEARCH BAR -->
+<div class="search-bar">
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="Search by drug name, brand, generic, use, ingredient..." oninput="doSearch()" autocomplete="off" />
+  </div>
+  <div class="filter-group">
+    <select id="filterCat" onchange="doSearch()">
+      <option value="">All categories</option>
+      <option value="Dermatology Brand">Derm Brand</option>
+      <option value="Dermatology Generic">Derm Generic</option>
+      <option value="Women's Health">Women's Health</option>
+      <option value="Men's Health">Men's Health</option>
+      <option value="Compounded">Compounded</option>
+      <option value="HRT Compound">HRT Compound</option>
+    </select>
+    <select id="filterLoc" onchange="doSearch()">
+      <option value="">All locations</option>
+      <option value="MA">MA</option>
+      <option value="CT">CT</option>
+      <option value="NH">NH</option>
+      <option value="RI">RI</option>
+      <option value="NY">NY (Sunshine)</option>
+    </select>
+    <select id="filterPA" onchange="doSearch()">
+      <option value="">PA: all</option>
+      <option value="yes">Usually requires PA</option>
+      <option value="sometimes">Sometimes PA</option>
+      <option value="rarely">Rarely needs PA</option>
+    </select>
+    <select id="filterPrice" onchange="doSearch()">
+      <option value="">Price type: all</option>
+      <option value="savings">Savings program</option>
+      <option value="manufacturer">Manufacturer coupon</option>
+    </select>
+    <span id="resultCount" class="badge-count">—</span>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-card"><div class="num" id="statTotal">—</div><div class="lbl">Total entries</div></div>
+  <div class="stat-card"><div class="num" id="statDerm">—</div><div class="lbl">Dermatology</div></div>
+  <div class="stat-card"><div class="num" id="statWomens">—</div><div class="lbl">Women's health</div></div>
+  <div class="stat-card"><div class="num" id="statMens">—</div><div class="lbl">Men's health</div></div>
+  <div class="stat-card"><div class="num" id="statCompound">—</div><div class="lbl">Compounded</div></div>
+  <div class="stat-card"><div class="num" id="statLastSync" style="font-size:13px;">—</div><div class="lbl">Last synced</div></div>
+</div>
+
+<div class="main">
+  <!-- skeleton loaders shown while fetching -->
+  <div id="loadingGrid" class="loading-grid">
+    <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+    <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+  </div>
+  <div id="drugGrid" class="drug-grid" style="display:none;"></div>
+  <div id="noResults" class="no-results" style="display:none;">
+    <div style="font-size:32px;margin-bottom:8px;">🔍</div>
+    <div style="font-weight:600;margin-bottom:4px;">No results found</div>
+    <div style="font-size:13px;">Try a different search term or clear filters</div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ============================================================
+// CONFIG — stored in localStorage so it survives page refresh
+// ============================================================
+const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbw9ZvYXBL0Lz0_lL7uYITKu1URBPV58iX9WuVeihDXoXI42QkTkWX5eLDBgs_0retca/exec';
+const DEFAULT_KEY = '1437418399';
+
+function getCfg(k, def) { return localStorage.getItem(k) || def; }
+function setCfg(k, v) { localStorage.setItem(k, v); }
+
+let API_URL = getCfg('apiUrl', DEFAULT_API);
+let SECRET  = getCfg('apiKey', DEFAULT_KEY);
+let WEBHOOK = getCfg('teamsWebhook', 'https://defaultdfae3167ff834ba9b4f409615a6a1c.3a.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/6b648ce915c14d368e72be2d0026bad4/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-8KYO5MgAOX5WmSiDyWP6JjxeSJSMpdbySg6lt4kuHs');
+
+// Populate settings fields on load
+document.getElementById('cfgApi').value = API_URL;
+document.getElementById('cfgKey').value = SECRET;
+document.getElementById('cfgWebhook').value = WEBHOOK;
+
+function saveSettings() {
+  API_URL = document.getElementById('cfgApi').value.trim() || DEFAULT_API;
+  SECRET  = document.getElementById('cfgKey').value.trim() || DEFAULT_KEY;
+  WEBHOOK = document.getElementById('cfgWebhook').value.trim();
+  setCfg('apiUrl', API_URL);
+  setCfg('apiKey', SECRET);
+  setCfg('teamsWebhook', WEBHOOK);
+  toggleSettings();
+  showToast('Settings saved — reloading data...', 'success');
+  refreshData();
+}
+
+function toggleSettings() {
+  const p = document.getElementById('settingsPanel');
+  p.style.display = p.style.display === 'none' || p.style.display === '' ? 'block' : 'none';
+}
+
+// ============================================================
+// DATA LAYER
+// ============================================================
+let DRUGS = [];
+let fuseIndex = null;
+
+// Map sheet column names → internal field names
+function mapRow(r) {
+  return {
+    id:           r['id']                    || r['ID'] || '',
+    name:         r['Drug Name']             || '',
+    altName:      r['Alt Name / Generic']    || '',
+    category:     r['Category']              || '',
+    qty:          r['Qty/Strength']          || '',
+    priceType:    normPriceType(r['Price Type'] || ''),
+    covPrice:     r['Covered by Insurance']  || '',
+    notCovPrice:  r['Not Covered Price']     || '',
+    cashPrice:    r['Cash Price']            || '',
+    allPricing:   r['All Pricing']           || '',
+    coveredOnly:  String(r['Covered Insurance Only'] || '').toUpperCase() === 'YES',
+    locations:    parseLocations(r['Locations'] || ''),
+    use:          r['Common Use']            || '',
+    sideEffects:  r['Side Effects']          || '',
+    pa:           normPA(r['PA Likelihood']  || ''),
+    paNotes:      r['PA Notes']              || '',
+    coveredAlts:  r['Covered Alternatives']  || '',
+    alternatives: r['Other Alternatives']    || '',
+    lastUpdated:  r['lastUpdated']           || '',
+    updatedBy:    r['updatedBy']             || ''
+  };
+}
+
+function normPriceType(v) {
+  const s = v.toLowerCase();
+  if (s.includes('savings') || s.includes('program')) return 'savings';
+  if (s.includes('manufacturer') || s.includes('coupon')) return 'manufacturer';
+  return 'savings';
+}
+
+function normPA(v) {
+  const s = v.toLowerCase();
+  if (s === 'yes' || s.includes('usually') || s.includes('often')) return 'yes';
+  if (s === 'rarely' || s.includes('rarely') || s.includes('no')) return 'rarely';
+  return 'sometimes';
+}
+
+function parseLocations(v) {
+  if (!v) return [];
+  return v.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+}
+
+function buildPricingCells(drug) {
+  const cells = [];
+  if (drug.allPricing) {
+    drug.allPricing.split('|').forEach(chunk => {
+      const i = chunk.indexOf(':');
+      if (i > -1) {
+        cells.push({ label: chunk.slice(0, i).trim(), val: chunk.slice(i + 1).trim() });
+      }
+    });
+  }
+  if (!cells.length) {
+    if (drug.covPrice)    cells.push({ label: 'Covered',     val: drug.covPrice });
+    if (drug.notCovPrice) cells.push({ label: 'Not Covered', val: drug.notCovPrice });
+    if (drug.cashPrice)   cells.push({ label: 'Cash',        val: drug.cashPrice });
+  }
+  if (!cells.length) cells.push({ label: 'See pharmacy', val: 'Contact us' });
+  return cells;
+}
+
+// ============================================================
+// FETCH FROM GOOGLE SHEETS
+// ============================================================
+async function fetchData() {
+  setSyncState('loading', 'Fetching latest data from Google Sheets...');
+  try {
+    const res = await fetch(API_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (json.status !== 'ok') throw new Error(json.message || 'Unknown error from script');
+
+    DRUGS = json.data.map(mapRow).filter(d => d.name);
+    fuseIndex = new Fuse(DRUGS, {
+      keys: ['name','altName','use','category','alternatives','coveredAlts','paNotes'],
+      threshold: 0.35, includeScore: true, minMatchCharLength: 2
+    });
+
+    updateStats();
+    doSearch();
+
+    const now = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    document.getElementById('statLastSync').textContent = now;
+    setSyncState('success', `✓ Synced — ${DRUGS.length} entries loaded from Google Sheets. Last updated: ${now}`);
+    document.getElementById('loadingGrid').style.display = 'none';
+    document.getElementById('drugGrid').style.display = 'grid';
+
+  } catch (err) {
+    setSyncState('error', `⚠ Could not load data from Google Sheets: ${err.message} — Check Settings or try Refresh.`);
+    document.getElementById('loadingGrid').style.display = 'none';
+    document.getElementById('noResults').style.display = 'block';
+    document.getElementById('noResults').innerHTML = `
+      <div style="font-size:28px;margin-bottom:8px;">⚠</div>
+      <div style="font-weight:600;margin-bottom:6px;">Could not connect to Google Sheets</div>
+      <div style="font-size:13px;color:var(--text-muted);max-width:480px;margin:0 auto;">${err.message}<br><br>
+      Make sure the Apps Script is deployed as a Web App with <strong>"Anyone"</strong> access, then click <strong>Refresh</strong> or check <strong>Settings</strong>.</div>
+      <button class="btn-primary" style="margin-top:16px;" onclick="refreshData()">↻ Try again</button>`;
+  }
+}
+
+function setSyncState(state, msg) {
+  const bar = document.getElementById('syncBar');
+  const spinner = document.getElementById('syncSpinner');
+  const msgEl = document.getElementById('syncMsg');
+  bar.className = 'sync-bar' + (state === 'error' ? ' error' : state === 'success' ? ' success' : '');
+  spinner.style.display = state === 'loading' ? 'block' : 'none';
+  msgEl.textContent = msg;
+}
+
+function refreshData() {
+  document.getElementById('loadingGrid').style.display = 'grid';
+  document.getElementById('drugGrid').style.display = 'none';
+  document.getElementById('noResults').style.display = 'none';
+  fetchData();
+}
+
+// ============================================================
+// SEARCH & FILTER
+// ============================================================
+function doSearch() {
+  if (!DRUGS.length) return;
+  const q   = document.getElementById('searchInput').value.trim();
+  const cat = document.getElementById('filterCat').value;
+  const loc = document.getElementById('filterLoc').value;
+  const pa  = document.getElementById('filterPA').value;
+  const pt  = document.getElementById('filterPrice').value;
+
+  let results = q.length >= 2
+    ? fuseIndex.search(q).map(r => r.item)
+    : [...DRUGS];
+
+  if (cat) results = results.filter(d => d.category === cat);
+  if (loc) results = results.filter(d => d.locations.includes(loc));
+  if (pa)  results = results.filter(d => d.pa === pa);
+  if (pt)  results = results.filter(d => d.priceType === pt);
+
+  renderGrid(results);
+}
+
+function renderGrid(drugs) {
+  const grid   = document.getElementById('drugGrid');
+  const noRes  = document.getElementById('noResults');
+  document.getElementById('resultCount').textContent = drugs.length;
+
+  if (!drugs.length) {
+    grid.innerHTML = '';
+    noRes.style.display = 'block';
+    noRes.innerHTML = `<div style="font-size:32px;margin-bottom:8px;">🔍</div>
+      <div style="font-weight:600;margin-bottom:4px;">No results found</div>
+      <div style="font-size:13px;">Try a different search term or clear filters</div>`;
+    return;
+  }
+  noRes.style.display = 'none';
+  grid.innerHTML = drugs.map(buildCard).join('');
+}
+
+function updateStats() {
+  document.getElementById('statTotal').textContent    = DRUGS.length;
+  document.getElementById('statDerm').textContent     = DRUGS.filter(d => d.category.includes('Dermatology')).length;
+  document.getElementById('statWomens').textContent   = DRUGS.filter(d => d.category === "Women's Health").length;
+  document.getElementById('statMens').textContent     = DRUGS.filter(d => d.category === "Men's Health").length;
+  document.getElementById('statCompound').textContent = DRUGS.filter(d => ['Compounded','HRT Compound'].includes(d.category)).length;
+}
+
+// ============================================================
+// CARD BUILDER
+// ============================================================
+function buildCard(d) {
+  const pricingCells = buildPricingCells(d);
+  const priceHTML = pricingCells.map(c => {
+    const cls = c.val === '$0' ? 'free' : (c.val === 'N/A' || c.val === '') ? 'na' : '';
+    return `<div class="price-cell">
+      <div class="price-label">${esc(c.label)}</div>
+      <div class="price-val ${cls}">${esc(c.val || 'N/A')}</div>
+    </div>`;
+  }).join('');
+
+  const paLabel = d.pa === 'yes' ? 'PA usually required'
+    : d.pa === 'sometimes' ? 'PA: sometimes' : 'PA: rarely needed';
+  const paBadgeCls = d.pa === 'yes' ? 'badge-pa-yes'
+    : d.pa === 'sometimes' ? 'badge-pa-sometimes' : 'badge-pa-rarely';
+  const paTextCls = d.pa === 'yes' ? 'pa-yes' : d.pa === 'sometimes' ? 'pa-sometimes' : 'pa-rarely';
+
+  const typeBadge = d.priceType === 'savings'
+    ? `<span class="badge badge-savings">💊 Savings program</span>`
+    : `<span class="badge badge-mfr">🏷 Manufacturer coupon</span>`;
+
+  const covOnlyBadge = d.coveredOnly
+    ? `<span class="badge" style="background:var(--red-light);color:var(--red);">Covered insurance only</span>` : '';
+
+  const locBadges = d.locations.map(l =>
+    `<span class="badge badge-loc">${esc(l === 'NY' ? 'NY (Sunshine)' : 'V-Care '+l)}</span>`).join('');
+
+  const locationNote = d.locations.length > 0 && d.locations.length < 5 && !d.locations.includes('NY')
+    ? `<div style="font-size:11px;color:var(--amber);margin-top:6px;">⚠ Not available at all locations — confirm before routing prescription.</div>` : '';
+
+  const priceNote = d.priceType === 'savings'
+    ? `<div style="font-size:11px;color:var(--green);margin-top:5px;">✓ Savings program: open to all patients including Medicare, Medicaid, and uninsured.</div>`
+    : `<div style="font-size:11px;color:var(--text-muted);margin-top:5px;">⚠ Manufacturer coupon: commercially insured patients only. Not valid for Medicare/Medicaid/TRICARE/VA/FEHBP.</div>`;
+
+  const updatedNote = d.lastUpdated
+    ? `<div style="font-size:11px;color:var(--text-light);margin-top:8px;">Last updated: ${esc(d.lastUpdated)}${d.updatedBy ? ' by ' + esc(d.updatedBy) : ''}</div>` : '';
+
+  const safeName = (d.name || '').replace(/'/g, "\\'");
+  const safeId   = String(d.id).replace(/'/g, '');
+
+  return `<div class="drug-card" id="card-${safeId}">
+    <div class="card-header" onclick="toggleCard('${safeId}')">
+      <div class="drug-name-block">
+        <div class="drug-name">${esc(d.name)} <span style="font-size:12px;font-weight:400;color:var(--text-muted);">${esc(d.altName)}</span></div>
+        ${d.qty ? `<div style="font-size:12px;color:var(--text-muted);margin-top:1px;">${esc(d.qty)}</div>` : ''}
+        <div class="header-badges">
+          <span class="badge badge-cat">${esc(d.category)}</span>
+          ${typeBadge}
+          <span class="badge ${paBadgeCls}">${paLabel}</span>
+          ${covOnlyBadge}
+          ${locBadges}
+        </div>
+      </div>
+      <span class="expand-icon" id="icon-${safeId}">▼</span>
+    </div>
+    <div class="card-body" id="body-${safeId}">
+
+      <div class="section-label">Pricing</div>
+      <div class="price-grid">${priceHTML}</div>
+      ${priceNote}
+
+      <div class="section-label">Clinical info</div>
+      <div class="info-grid">
+        <div class="info-block full">
+          <div class="ib-label">Common use</div>
+          <div class="ib-text">${esc(d.use)}</div>
+        </div>
+        <div class="info-block full">
+          <div class="ib-label">Common side effects</div>
+          <div class="ib-text">${esc(d.sideEffects)}</div>
+        </div>
+        <div class="info-block">
+          <div class="ib-label">Prior authorization</div>
+          <div class="ib-text"><span class="${paTextCls}">${paLabel}</span><br>
+          <span style="font-size:12px;">${esc(d.paNotes)}</span></div>
+        </div>
+        <div class="info-block">
+          <div class="ib-label">Covered alternatives / step therapy</div>
+          <div class="ib-text">${esc(d.coveredAlts)}</div>
+        </div>
+        <div class="info-block full">
+          <div class="ib-label">Other alternatives</div>
+          <div class="ib-text">${esc(d.alternatives)}</div>
+        </div>
+        <div class="info-block full">
+          <div class="ib-label">Pharmacy locations</div>
+          <div class="loc-list">${locBadges || '<span style="font-size:12px;color:var(--text-muted);">Not specified</span>'}</div>
+          ${locationNote}
+        </div>
+      </div>
+      ${updatedNote}
+
+      <div class="section-label">Propose an update</div>
+      <button class="btn-secondary" style="font-size:12px;" onclick="toggleEdit('${safeId}')">✏ Suggest a change to this entry</button>
+      <div class="edit-panel" id="edit-${safeId}">
+        <div class="edit-panel-title">Propose update: ${esc(d.name)}</div>
+        <div class="edit-form">
+          <div>
+            <label>Field to update</label>
+            <select id="ef-field-${safeId}">
+              <option value="Covered by Insurance">Covered price</option>
+              <option value="Not Covered Price">Not covered price</option>
+              <option value="Cash Price">Cash price</option>
+              <option value="All Pricing">All pricing (full text)</option>
+              <option value="PA Notes">PA notes</option>
+              <option value="Covered Alternatives">Covered alternatives</option>
+              <option value="Common Use">Common use</option>
+              <option value="Side Effects">Side effects</option>
+              <option value="Other Alternatives">Other alternatives</option>
+              <option value="PA Likelihood">PA likelihood</option>
+              <option value="Locations">Locations</option>
+            </select>
+          </div>
+          <div>
+            <label>Your name / location</label>
+            <input type="text" id="ef-staff-${safeId}" placeholder="e.g. Jane – Chestnut Hill" />
+          </div>
+          <div class="full">
+            <label>New value / proposed change</label>
+            <textarea id="ef-note-${safeId}" placeholder="Type the corrected value or describe the change..."></textarea>
+          </div>
+        </div>
+        <div class="edit-actions">
+          <span class="edit-status" id="ef-status-${safeId}"></span>
+          <button class="btn-secondary" onclick="toggleEdit('${safeId}')">Cancel</button>
+          <button class="btn-primary" id="ef-btn-${safeId}" onclick="submitEdit('${safeId}','${safeName}')">Submit update</button>
+        </div>
+      </div>
+
+    </div>
+  </div>`;
+}
+
+function toggleCard(id) {
+  document.getElementById('body-' + id).classList.toggle('open');
+  document.getElementById('icon-' + id).classList.toggle('open');
+}
+
+function toggleEdit(id) {
+  document.getElementById('edit-' + id).classList.toggle('open');
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ============================================================
+// SUBMIT EDIT — writes directly to Google Sheet via Apps Script
+// ============================================================
+async function submitEdit(drugId, drugName) {
+  const field  = document.getElementById('ef-field-'  + drugId).value;
+  const staff  = document.getElementById('ef-staff-'  + drugId).value.trim();
+  const note   = document.getElementById('ef-note-'   + drugId).value.trim();
+  const btn    = document.getElementById('ef-btn-'    + drugId);
+  const status = document.getElementById('ef-status-' + drugId);
+
+  if (!note) { showToast('Please enter the proposed change.', 'error'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+  status.textContent = 'Sending to Google Sheets...';
+
+  // Payload for logging the edit in the Edits tab
+  const editPayload = {
+    key: SECRET,
+    action: 'addEdit',
+    drugId, drugName, field,
+    note, staff
+  };
+
+  // Payload to directly update the cell in the main sheet
+  const updatePayload = {
+    key: SECRET,
+    action: 'update',
+    id: drugId,
+    field,
+    value: note,
+    updatedBy: staff
+  };
+
+  try {
+    // Log the edit first (always succeeds even if cell update fails)
+    await postToScript(editPayload);
+    // Then attempt direct cell update
+    const updateRes = await postToScript(updatePayload);
+
+    if (updateRes.status === 'ok') {
+      status.textContent = '✓ Updated in Google Sheets!';
+      status.style.color = 'var(--green)';
+      showToast('✓ Change saved to Google Sheets — data will refresh.', 'success');
+
+      // Fire Teams notification if webhook configured
+      if (WEBHOOK) fireTeamsNotification({ drugId, drugName, field, note, staff });
+
+      // Auto-refresh after short delay so card shows new value
+      setTimeout(() => { fetchData(); toggleEdit(drugId); }, 1800);
+    } else {
+      throw new Error(updateRes.message || 'Script returned an error');
+    }
+  } catch(err) {
+    status.textContent = '⚠ Could not save: ' + err.message;
+    status.style.color = 'var(--red)';
+    btn.disabled = false;
+    btn.textContent = 'Try again';
+    showToast('Could not save to Google Sheets — check connection.', 'error');
+  }
+}
+
+async function postToScript(payload) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+function fireTeamsNotification(edit) {
+  const payload = {
+    "@type": "MessageCard",
+    "@context": "http://schema.org/extensions",
+    "themeColor": "7B2D3E",
+    "summary": "Drug reference update",
+    "sections": [{
+      "activityTitle": "📋 Drug Reference Entry Updated",
+      "activitySubtitle": `${edit.drugName} — field: ${edit.field}`,
+      "facts": [
+        { "name": "Drug",       "value": edit.drugName },
+        { "name": "Field",      "value": edit.field },
+        { "name": "New value",  "value": edit.note },
+        { "name": "Updated by", "value": edit.staff || "(anonymous)" },
+        { "name": "Time",       "value": new Date().toLocaleString() }
+      ]
+    }]
+  };
+  fetch(WEBHOOK, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
+    .catch(() => {});
+}
+
+// ============================================================
+// EXPORT EXCEL — snapshot of current loaded data
+// ============================================================
+function exportExcel() {
+  if (!DRUGS.length) { showToast('No data loaded yet.', 'error'); return; }
+  const wb = XLSX.utils.book_new();
+  const rows = DRUGS.map(d => ({
+    'id': d.id,
+    'Drug Name': d.name,
+    'Alt Name / Generic': d.altName,
+    'Category': d.category,
+    'Qty/Strength': d.qty,
+    'Price Type': d.priceType === 'savings' ? 'Savings Program (all patients)' : 'Manufacturer Coupon (commercially insured)',
+    'Covered by Insurance': d.covPrice,
+    'Not Covered Price': d.notCovPrice,
+    'Cash Price': d.cashPrice,
+    'All Pricing': d.allPricing,
+    'Covered Insurance Only': d.coveredOnly ? 'YES' : 'No',
+    'Locations': d.locations.join(', '),
+    'Common Use': d.use,
+    'Side Effects': d.sideEffects,
+    'PA Likelihood': d.pa,
+    'PA Notes': d.paNotes,
+    'Covered Alternatives': d.coveredAlts,
+    'Other Alternatives': d.alternatives,
+    'Last Updated': d.lastUpdated,
+    'Updated By': d.updatedBy
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [6,22,20,18,15,28,15,15,12,40,12,18,40,40,12,50,40,40,18,15].map(w => ({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws, 'All Drugs');
+  XLSX.writeFile(wb, `VCare_Drug_Reference_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast('Excel snapshot downloaded!', 'success');
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+let toastTimer;
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+fetchData();
+</script>
+</body>
+</html>
