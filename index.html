@@ -244,8 +244,20 @@
 // ============================================================
 // CONFIG — stored in localStorage so it survives page refresh
 // ============================================================
-const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbwubv8v-wIqBA0a8nMIQETZWhf5sJsqfwNedUCJqYeWtsDJcdSF83vcOB2os5mPr03s/exec';
+const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbx1AfND3YEQ4Uld7RbeGB5adzLAq6O-e9hoGR_5_XKJ1-3DfzGJSt-ayeDpbRhiLQjH/exec';
 const DEFAULT_KEY = '1437418399';
+
+// If the stored URL is an old deployment, clear it so the new default is used
+const storedApi = localStorage.getItem('apiUrl');
+const knownOldUrls = [
+  'AKfycbwubv8v',
+  'AKfycbw9ZvYX',
+  'AKfycbwZ2m3Y',
+  'AKfycbwubv8v'
+];
+if (storedApi && knownOldUrls.some(old => storedApi.includes(old))) {
+  localStorage.removeItem('apiUrl');
+}
 
 function getCfg(k, def) { return localStorage.getItem(k) || def; }
 function setCfg(k, v) { localStorage.setItem(k, v); }
@@ -360,7 +372,8 @@ function buildPricingCells(drug) {
 async function fetchData() {
   setSyncState('loading', 'Fetching latest data from Google Sheets...');
   try {
-    const res = await fetch(API_URL, { cache: 'no-store' });
+    const bustCache = `${API_URL}?t=${Date.now()}&r=${Math.random()}`;
+    const res = await fetch(bustCache, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     if (json.status !== 'ok') throw new Error(json.message || 'Unknown error from script');
@@ -779,8 +792,9 @@ async function submitEdit(drugId, drugName) {
 
       // Re-render cards immediately from updated in-memory data
       doSearch();
-      // Then do a full background fetch after 3 seconds to fully confirm sync
-      setTimeout(() => { fetchData(); }, 3000);
+      // Wait 5 seconds then re-fetch from sheet to confirm sync
+      // (Google Sheets needs time to commit the write before it's readable)
+      setTimeout(() => { fetchData(); }, 5000);
 
     } else {
       throw new Error(updateRes.message || 'Script returned an error');
