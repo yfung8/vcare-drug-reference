@@ -329,19 +329,33 @@ function parseLocations(v) {
 
 function buildPricingCells(drug) {
   const cells = [];
-  if (drug.allPricing) {
-    drug.allPricing.split('|').forEach(chunk => {
+
+  // Try allPricing string first (pipe-separated)
+  if (drug.allPricing && String(drug.allPricing).trim()) {
+    String(drug.allPricing).split('|').forEach(chunk => {
       const i = chunk.indexOf(':');
       if (i > -1) {
-        cells.push({ label: chunk.slice(0, i).trim(), val: chunk.slice(i + 1).trim() });
+        const label = chunk.slice(0, i).trim();
+        const val   = chunk.slice(i + 1).trim();
+        if (label) cells.push({ label, val: val || 'N/A' });
       }
     });
   }
+
+  // Always supplement with individual fields in case allPricing is missing any
   if (!cells.length) {
-    if (drug.covPrice)    cells.push({ label: 'Covered',     val: drug.covPrice });
-    if (drug.notCovPrice) cells.push({ label: 'Not Covered', val: drug.notCovPrice });
-    if (drug.cashPrice)   cells.push({ label: 'Cash',        val: drug.cashPrice });
+    const covVal = drug.covPrice !== undefined && drug.covPrice !== null && String(drug.covPrice).trim() !== ''
+      ? String(drug.covPrice) : null;
+    const notCovVal = drug.notCovPrice !== undefined && drug.notCovPrice !== null && String(drug.notCovPrice).trim() !== ''
+      ? String(drug.notCovPrice) : null;
+    const cashVal = drug.cashPrice !== undefined && drug.cashPrice !== null && String(drug.cashPrice).trim() !== ''
+      ? String(drug.cashPrice) : null;
+
+    if (covVal    !== null) cells.push({ label: 'Covered',     val: covVal });
+    if (notCovVal !== null) cells.push({ label: 'Not Covered', val: notCovVal });
+    if (cashVal   !== null) cells.push({ label: 'Cash',        val: cashVal });
   }
+
   if (!cells.length) cells.push({ label: 'See pharmacy', val: 'Contact us' });
   return cells;
 }
@@ -749,6 +763,17 @@ async function submitEdit(drugId, drugName) {
         } else if (field === 'Locations') {
           drugInMemory.locations = note.split(',').map(s => s.trim()).filter(Boolean);
         }
+
+        // If a pricing field changed, rebuild allPricing so the price cells re-render
+        const pricingFields = ['Covered by Insurance', 'Not Covered Price', 'Cash Price'];
+        if (pricingFields.includes(field)) {
+          const parts = [];
+          if (drugInMemory.covPrice    !== '') parts.push(`Covered: ${drugInMemory.covPrice}`);
+          if (drugInMemory.notCovPrice !== '') parts.push(`Not Covered: ${drugInMemory.notCovPrice}`);
+          if (drugInMemory.cashPrice   !== '') parts.push(`Cash: ${drugInMemory.cashPrice}`);
+          drugInMemory.allPricing = parts.join(' | ');
+        }
+
         drugInMemory.lastUpdated = timestamp;
         drugInMemory.updatedBy   = staff;
       }
