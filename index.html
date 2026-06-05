@@ -154,7 +154,7 @@
   <div class="settings-grid">
     <div>
       <label>Google Apps Script URL (your live data source)</label>
-      <input type="url" id="cfgApi" placeholder="https://script.google.com/macros/s/AKfycbwubv8v-wIqBA0a8nMIQETZWhf5sJsqfwNedUCJqYeWtsDJcdSF83vcOB2os5mPr03s/exec" />
+      <input type="url" id="cfgApi" placeholder="https://script.google.com/macros/s/.../exec" />
     </div>
     <div>
       <label>Secret key (must match your Apps Script)</label>
@@ -635,17 +635,17 @@ function esc(s) {
 
 // Map select option values to the drug object field names
 const FIELD_MAP = {
-  'Covered by Insurance': (d) => d.covPrice || '',
-  'Not Covered Price':    (d) => d.notCovPrice || '',
-  'Cash Price':           (d) => d.cashPrice || '',
-  'All Pricing':          (d) => d.allPricing || '',
-  'PA Notes':             (d) => d.paNotes || '',
-  'Covered Alternatives': (d) => d.coveredAlts || '',
-  'Common Use':           (d) => d.use || '',
-  'Side Effects':         (d) => d.sideEffects || '',
-  'Other Alternatives':   (d) => d.alternatives || '',
-  'PA Likelihood':        (d) => d.pa || '',
-  'Locations':            (d) => d.locations.join(', ')
+  'Covered by Insurance': (d) => d.covPrice  !== undefined && d.covPrice  !== null ? String(d.covPrice)  : '',
+  'Not Covered Price':    (d) => d.notCovPrice !== undefined && d.notCovPrice !== null ? String(d.notCovPrice) : '',
+  'Cash Price':           (d) => d.cashPrice  !== undefined && d.cashPrice  !== null ? String(d.cashPrice)  : '',
+  'All Pricing':          (d) => d.allPricing !== undefined && d.allPricing !== null ? String(d.allPricing) : '',
+  'PA Notes':             (d) => d.paNotes    !== undefined && d.paNotes    !== null ? String(d.paNotes)    : '',
+  'Covered Alternatives': (d) => d.coveredAlts !== undefined && d.coveredAlts !== null ? String(d.coveredAlts) : '',
+  'Common Use':           (d) => d.use        !== undefined && d.use        !== null ? String(d.use)        : '',
+  'Side Effects':         (d) => d.sideEffects !== undefined && d.sideEffects !== null ? String(d.sideEffects) : '',
+  'Other Alternatives':   (d) => d.alternatives !== undefined && d.alternatives !== null ? String(d.alternatives) : '',
+  'PA Likelihood':        (d) => d.pa         !== undefined && d.pa         !== null ? String(d.pa)         : '',
+  'Locations':            (d) => Array.isArray(d.locations) ? d.locations.join(', ') : ''
 };
 
 // When a field is selected, show current value and pre-populate the textarea
@@ -666,9 +666,14 @@ function populateCurrentValue(id) {
     currentVal = mapper(drug);
   }
 
-  currentEl.textContent = currentVal || '(empty)';
-  // Pre-populate the textarea with the current value so staff can edit in place
-  noteEl.value = currentVal;
+  // Show the value — explicitly handle '0', '$0', and empty string differently
+  const displayVal = (currentVal !== '' && currentVal !== null && currentVal !== undefined)
+    ? currentVal : '(no current value)';
+  currentEl.textContent = displayVal;
+
+  // Pre-populate textarea — only pre-fill if there's actually a value
+  // so staff don't accidentally submit a blank or zero unchanged
+  noteEl.value = currentVal !== '' ? currentVal : '';
   checkEditReady(id);
 }
 
@@ -722,13 +727,41 @@ async function submitEdit(drugId, drugName) {
       status.innerHTML = `<span style="color:var(--green);">✓ Saved by ${esc(staff)} at ${timestamp}</span>`;
       showToast('✓ Change saved to Google Sheets!', 'success');
 
+      // Update the in-memory drug object immediately so the card re-renders
+      // with the new value right away without waiting for a full sheet re-fetch
+      const drugInMemory = DRUGS.find(d => String(d.id) === String(drugId));
+      if (drugInMemory) {
+        const memFieldMap = {
+          'Covered by Insurance': 'covPrice',
+          'Not Covered Price':    'notCovPrice',
+          'Cash Price':           'cashPrice',
+          'All Pricing':          'allPricing',
+          'PA Notes':             'paNotes',
+          'Covered Alternatives': 'coveredAlts',
+          'Common Use':           'use',
+          'Side Effects':         'sideEffects',
+          'Other Alternatives':   'alternatives',
+          'PA Likelihood':        'pa'
+        };
+        const memField = memFieldMap[field];
+        if (memField) {
+          drugInMemory[memField] = note;
+        } else if (field === 'Locations') {
+          drugInMemory.locations = note.split(',').map(s => s.trim()).filter(Boolean);
+        }
+        drugInMemory.lastUpdated = timestamp;
+        drugInMemory.updatedBy   = staff;
+      }
+
       // Fire Teams notification with before/after summary
       if (WEBHOOK) {
         fireTeamsNotification({ drugId, drugName, field, before, after, staff, timestamp });
       }
 
-      // Auto-refresh after short delay so card shows updated value
-      setTimeout(() => { fetchData(); toggleEdit(drugId); }, 2000);
+      // Re-render cards immediately from updated in-memory data
+      doSearch();
+      // Then do a full background fetch after 3 seconds to fully confirm sync
+      setTimeout(() => { fetchData(); }, 3000);
 
     } else {
       throw new Error(updateRes.message || 'Script returned an error');
