@@ -565,18 +565,22 @@ function buildCard(d) {
             </select>
           </div>
           <div>
-            <label>Your name / location</label>
-            <input type="text" id="ef-staff-${safeId}" placeholder="e.g. Jane – Chestnut Hill" />
+            <label>Your name / initials <span style="color:var(--red);">*</span></label>
+            <input type="text" id="ef-staff-${safeId}"
+              placeholder="Required — e.g. JD – Chestnut Hill"
+              oninput="checkEditReady('${safeId}')" />
           </div>
           <div class="full">
-            <label>New value / proposed change</label>
-            <textarea id="ef-note-${safeId}" placeholder="Type the corrected value or describe the change..."></textarea>
+            <label>New value <span style="color:var(--red);">*</span></label>
+            <textarea id="ef-note-${safeId}"
+              placeholder="Type the corrected value..."
+              oninput="checkEditReady('${safeId}')"></textarea>
           </div>
         </div>
         <div class="edit-actions">
           <span class="edit-status" id="ef-status-${safeId}"></span>
           <button class="btn-secondary" onclick="toggleEdit('${safeId}')">Cancel</button>
-          <button class="btn-primary" id="ef-btn-${safeId}" onclick="submitEdit('${safeId}','${safeName}')">Submit update</button>
+          <button class="btn-primary" id="ef-btn-${safeId}" onclick="submitEdit('${safeId}','${safeName}')" disabled style="opacity:0.5;">Submit update</button>
         </div>
       </div>
 
@@ -603,6 +607,18 @@ function esc(s) {
 // ============================================================
 // SUBMIT EDIT — writes directly to Google Sheet via Apps Script
 // ============================================================
+
+// Enable submit button only when both name and new value are filled
+function checkEditReady(id) {
+  const staff = (document.getElementById('ef-staff-' + id)?.value || '').trim();
+  const note  = (document.getElementById('ef-note-'  + id)?.value || '').trim();
+  const btn   = document.getElementById('ef-btn-' + id);
+  if (!btn) return;
+  const ready = staff.length > 0 && note.length > 0;
+  btn.disabled = !ready;
+  btn.style.opacity = ready ? '1' : '0.5';
+}
+
 async function submitEdit(drugId, drugName) {
   const field  = document.getElementById('ef-field-'  + drugId).value;
   const staff  = document.getElementById('ef-staff-'  + drugId).value.trim();
@@ -610,46 +626,45 @@ async function submitEdit(drugId, drugName) {
   const btn    = document.getElementById('ef-btn-'    + drugId);
   const status = document.getElementById('ef-status-' + drugId);
 
-  if (!note) { showToast('Please enter the proposed change.', 'error'); return; }
+  if (!staff) { showToast('Please enter your name or initials.', 'error'); return; }
+  if (!note)  { showToast('Please enter the new value.', 'error'); return; }
 
   btn.disabled = true;
-  btn.textContent = 'Submitting...';
+  btn.style.opacity = '0.6';
+  btn.textContent = 'Saving...';
   status.textContent = 'Sending to Google Sheets...';
+  status.style.color = 'var(--text-muted)';
 
-  // Payload for logging the edit in the Edits tab
-  const editPayload = {
-    key: SECRET,
-    action: 'addEdit',
-    drugId, drugName, field,
-    note, staff
-  };
-
-  // Payload to directly update the cell in the main sheet
+  // Single update call — the new Apps Script logs before/after and returns both
   const updatePayload = {
-    key: SECRET,
-    action: 'update',
-    id: drugId,
-    field,
-    value: note,
-    updatedBy: staff
+    key:      SECRET,
+    action:   'update',
+    id:       drugId,
+    drugName: drugName,
+    field:    field,
+    value:    note,
+    staff:    staff
   };
 
   try {
-    // Log the edit first (always succeeds even if cell update fails)
-    await postToScript(editPayload);
-    // Then attempt direct cell update
     const updateRes = await postToScript(updatePayload);
 
     if (updateRes.status === 'ok') {
-      status.textContent = '✓ Updated in Google Sheets!';
-      status.style.color = 'var(--green)';
-      showToast('✓ Change saved to Google Sheets — data will refresh.', 'success');
+      const before    = updateRes.before    || '(not recorded)';
+      const after     = updateRes.after     || note;
+      const timestamp = updateRes.timestamp || new Date().toLocaleString();
 
-      // Fire Teams notification if webhook configured
-      if (WEBHOOK) fireTeamsNotification({ drugId, drugName, field, note, staff });
+      status.innerHTML = `<span style="color:var(--green);">✓ Saved by ${esc(staff)} at ${timestamp}</span>`;
+      showToast('✓ Change saved to Google Sheets!', 'success');
 
-      // Auto-refresh after short delay so card shows new value
-      setTimeout(() => { fetchData(); toggleEdit(drugId); }, 1800);
+      // Fire Teams notification with before/after summary
+      if (WEBHOOK) {
+        fireTeamsNotification({ drugId, drugName, field, before, after, staff, timestamp });
+      }
+
+      // Auto-refresh after short delay so card shows updated value
+      setTimeout(() => { fetchData(); toggleEdit(drugId); }, 2000);
+
     } else {
       throw new Error(updateRes.message || 'Script returned an error');
     }
@@ -657,8 +672,9 @@ async function submitEdit(drugId, drugName) {
     status.textContent = '⚠ Could not save: ' + err.message;
     status.style.color = 'var(--red)';
     btn.disabled = false;
+    btn.style.opacity = '1';
     btn.textContent = 'Try again';
-    showToast('Could not save to Google Sheets — check connection.', 'error');
+    showToast('Could not save — check your connection.', 'error');
   }
 }
 
@@ -671,25 +687,39 @@ async function postToScript(payload) {
 }
 
 function fireTeamsNotification(edit) {
+  // Format before/after cleanly — truncate very long values
+  const truncate = (s, n) => s && s.length > n ? s.slice(0, n) + '...' : (s || '—');
+  const before = truncate(edit.before, 300);
+  const after  = truncate(edit.after,  300);
+
   const payload = {
     "@type": "MessageCard",
     "@context": "http://schema.org/extensions",
     "themeColor": "7B2D3E",
-    "summary": "Drug reference update",
-    "sections": [{
-      "activityTitle": "📋 Drug Reference Entry Updated",
-      "activitySubtitle": `${edit.drugName} — field: ${edit.field}`,
-      "facts": [
-        { "name": "Drug",       "value": edit.drugName },
-        { "name": "Field",      "value": edit.field },
-        { "name": "New value",  "value": edit.note },
-        { "name": "Updated by", "value": edit.staff || "(anonymous)" },
-        { "name": "Time",       "value": new Date().toLocaleString() }
-      ]
-    }]
+    "summary": `Drug reference updated: ${edit.drugName}`,
+    "sections": [
+      {
+        "activityTitle": "📋 Drug Reference Updated",
+        "activitySubtitle": `**${edit.drugName}** — ${edit.field}`,
+        "activityImage": "",
+        "facts": [
+          { "name": "Drug",       "value": edit.drugName },
+          { "name": "Field",      "value": edit.field },
+          { "name": "⬅ Before",  "value": before },
+          { "name": "➡ After",   "value": after },
+          { "name": "Updated by", "value": edit.staff },
+          { "name": "Date / Time","value": edit.timestamp }
+        ],
+        "markdown": true
+      }
+    ]
   };
-  fetch(WEBHOOK, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
-    .catch(() => {});
+
+  fetch(WEBHOOK, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).catch(() => {});
 }
 
 // ============================================================
