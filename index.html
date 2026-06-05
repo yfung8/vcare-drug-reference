@@ -550,7 +550,7 @@ function buildCard(d) {
         <div class="edit-form">
           <div>
             <label>Field to update</label>
-            <select id="ef-field-${safeId}">
+            <select id="ef-field-${safeId}" onchange="populateCurrentValue('${safeId}')">
               <option value="Covered by Insurance">Covered price</option>
               <option value="Not Covered Price">Not covered price</option>
               <option value="Cash Price">Cash price</option>
@@ -571,10 +571,13 @@ function buildCard(d) {
               oninput="checkEditReady('${safeId}')" />
           </div>
           <div class="full">
+            <label>Current value <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(edit or add to this)</span></label>
+            <div id="ef-current-${safeId}" style="font-size:11px;color:var(--text-muted);background:var(--gray);border-radius:var(--radius);padding:6px 10px;margin-bottom:6px;min-height:28px;line-height:1.5;white-space:pre-wrap;"></div>
             <label>New value <span style="color:var(--red);">*</span></label>
             <textarea id="ef-note-${safeId}"
-              placeholder="Type the corrected value..."
-              oninput="checkEditReady('${safeId}')"></textarea>
+              placeholder="Current value will load above when you select a field — edit or add to it here..."
+              oninput="checkEditReady('${safeId}')"
+              style="min-height:90px;"></textarea>
           </div>
         </div>
         <div class="edit-actions">
@@ -594,7 +597,25 @@ function toggleCard(id) {
 }
 
 function toggleEdit(id) {
-  document.getElementById('edit-' + id).classList.toggle('open');
+  const panel = document.getElementById('edit-' + id);
+  const wasOpen = panel.classList.contains('open');
+  panel.classList.toggle('open');
+  // Auto-populate the first field's current value when opening
+  if (!wasOpen) {
+    populateCurrentValue(id);
+  } else {
+    // Reset form when closing
+    const noteEl  = document.getElementById('ef-note-'    + id);
+    const staffEl = document.getElementById('ef-staff-'   + id);
+    const statusEl= document.getElementById('ef-status-'  + id);
+    const btnEl   = document.getElementById('ef-btn-'     + id);
+    const curEl   = document.getElementById('ef-current-' + id);
+    if (noteEl)   noteEl.value = '';
+    if (staffEl)  staffEl.value = '';
+    if (statusEl) { statusEl.textContent = ''; statusEl.style.color = ''; }
+    if (btnEl)    { btnEl.disabled = true; btnEl.style.opacity = '0.5'; btnEl.textContent = 'Submit update'; }
+    if (curEl)    curEl.textContent = '';
+  }
 }
 
 function esc(s) {
@@ -608,7 +629,52 @@ function esc(s) {
 // SUBMIT EDIT — writes directly to Google Sheet via Apps Script
 // ============================================================
 
-// Enable submit button only when both name and new value are filled
+// ============================================================
+// EDIT FORM HELPERS
+// ============================================================
+
+// Map select option values to the drug object field names
+const FIELD_MAP = {
+  'Covered by Insurance': 'covPrice',
+  'Not Covered Price':    'notCovPrice',
+  'Cash Price':           'cashPrice',
+  'All Pricing':          'allPricing',
+  'PA Notes':             'paNotes',
+  'Covered Alternatives': 'coveredAlts',
+  'Common Use':           'use',
+  'Side Effects':         'sideEffects',
+  'Other Alternatives':   'alternatives',
+  'PA Likelihood':        'pa',
+  'Locations':            (d) => d.locations.join(', ')
+};
+
+// When a field is selected, show current value and pre-populate the textarea
+function populateCurrentValue(id) {
+  const selectEl  = document.getElementById('ef-field-'   + id);
+  const currentEl = document.getElementById('ef-current-' + id);
+  const noteEl    = document.getElementById('ef-note-'    + id);
+  if (!selectEl || !currentEl || !noteEl) return;
+
+  const field = selectEl.value;
+  // Find the drug by card id
+  const drug = DRUGS.find(d => String(d.id) === String(id));
+  if (!drug) { currentEl.textContent = ''; noteEl.value = ''; return; }
+
+  const mapper = FIELD_MAP[field];
+  let currentVal = '';
+  if (typeof mapper === 'function') {
+    currentVal = mapper(drug);
+  } else if (mapper) {
+    currentVal = drug[mapper] || '';
+  }
+
+  currentEl.textContent = currentVal || '(empty)';
+  // Pre-populate the textarea with the current value so staff can edit in place
+  noteEl.value = currentVal;
+  checkEditReady(id);
+}
+
+// Enable submit only when name AND new value are both filled
 function checkEditReady(id) {
   const staff = (document.getElementById('ef-staff-' + id)?.value || '').trim();
   const note  = (document.getElementById('ef-note-'  + id)?.value || '').trim();
@@ -617,6 +683,7 @@ function checkEditReady(id) {
   const ready = staff.length > 0 && note.length > 0;
   btn.disabled = !ready;
   btn.style.opacity = ready ? '1' : '0.5';
+  btn.style.cursor  = ready ? 'pointer' : 'not-allowed';
 }
 
 async function submitEdit(drugId, drugName) {
