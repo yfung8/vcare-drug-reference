@@ -252,7 +252,7 @@ function setCfg(k, v) { localStorage.setItem(k, v); }
 
 let API_URL = getCfg('apiUrl', DEFAULT_API);
 let SECRET  = getCfg('apiKey', DEFAULT_KEY);
-let WEBHOOK = getCfg('teamsWebhook', 'https://defaultdfae3167ff834ba9b4f409615a6a1c.3a.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/6b648ce915c14d368e72be2d0026bad4/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=-8KYO5MgAOX5WmSiDyWP6JjxeSJSMpdbySg6lt4kuHs');
+let WEBHOOK = getCfg('teamsWebhook', 'https://defaultdfae3167ff834ba9b4f409615a6a1c.3a.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/7d5604435fea476e83200000a30df7e2/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=HQwJzLNYsiq3aRsHdcnVcsH0dk7R91uGeHrxHf4KBpk');
 
 // Populate settings fields on load
 document.getElementById('cfgApi').value = API_URL;
@@ -635,16 +635,16 @@ function esc(s) {
 
 // Map select option values to the drug object field names
 const FIELD_MAP = {
-  'Covered by Insurance': 'covPrice',
-  'Not Covered Price':    'notCovPrice',
-  'Cash Price':           'cashPrice',
-  'All Pricing':          'allPricing',
-  'PA Notes':             'paNotes',
-  'Covered Alternatives': 'coveredAlts',
-  'Common Use':           'use',
-  'Side Effects':         'sideEffects',
-  'Other Alternatives':   'alternatives',
-  'PA Likelihood':        'pa',
+  'Covered by Insurance': (d) => d.covPrice || '',
+  'Not Covered Price':    (d) => d.notCovPrice || '',
+  'Cash Price':           (d) => d.cashPrice || '',
+  'All Pricing':          (d) => d.allPricing || '',
+  'PA Notes':             (d) => d.paNotes || '',
+  'Covered Alternatives': (d) => d.coveredAlts || '',
+  'Common Use':           (d) => d.use || '',
+  'Side Effects':         (d) => d.sideEffects || '',
+  'Other Alternatives':   (d) => d.alternatives || '',
+  'PA Likelihood':        (d) => d.pa || '',
   'Locations':            (d) => d.locations.join(', ')
 };
 
@@ -664,8 +664,6 @@ function populateCurrentValue(id) {
   let currentVal = '';
   if (typeof mapper === 'function') {
     currentVal = mapper(drug);
-  } else if (mapper) {
-    currentVal = drug[mapper] || '';
   }
 
   currentEl.textContent = currentVal || '(empty)';
@@ -754,30 +752,48 @@ async function postToScript(payload) {
 }
 
 function fireTeamsNotification(edit) {
-  // Format before/after cleanly — truncate very long values
   const truncate = (s, n) => s && s.length > n ? s.slice(0, n) + '...' : (s || '—');
-  const before = truncate(edit.before, 300);
-  const after  = truncate(edit.after,  300);
+  const before    = truncate(edit.before, 500);
+  const after     = truncate(edit.after,  500);
 
+  // Power Automate expects an Adaptive Card payload
   const payload = {
-    "@type": "MessageCard",
-    "@context": "http://schema.org/extensions",
-    "themeColor": "7B2D3E",
-    "summary": `Drug reference updated: ${edit.drugName}`,
-    "sections": [
+    type: "message",
+    attachments: [
       {
-        "activityTitle": "📋 Drug Reference Updated",
-        "activitySubtitle": `**${edit.drugName}** — ${edit.field}`,
-        "activityImage": "",
-        "facts": [
-          { "name": "Drug",       "value": edit.drugName },
-          { "name": "Field",      "value": edit.field },
-          { "name": "⬅ Before",  "value": before },
-          { "name": "➡ After",   "value": after },
-          { "name": "Updated by", "value": edit.staff },
-          { "name": "Date / Time","value": edit.timestamp }
-        ],
-        "markdown": true
+        contentType: "application/vnd.microsoft.card.adaptive",
+        content: {
+          "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+          type: "AdaptiveCard",
+          version: "1.4",
+          body: [
+            {
+              type: "TextBlock",
+              text: "📋 Drug Reference Updated",
+              weight: "Bolder",
+              size: "Medium",
+              color: "Accent"
+            },
+            {
+              type: "TextBlock",
+              text: `**${edit.drugName}** — ${edit.field}`,
+              wrap: true,
+              spacing: "Small"
+            },
+            {
+              type: "FactSet",
+              spacing: "Medium",
+              facts: [
+                { title: "Drug",        value: edit.drugName },
+                { title: "Field",       value: edit.field },
+                { title: "⬅ Before",   value: before },
+                { title: "➡ After",    value: after },
+                { title: "Updated by",  value: edit.staff },
+                { title: "Date / Time", value: edit.timestamp }
+              ]
+            }
+          ]
+        }
       }
     ]
   };
@@ -786,7 +802,21 @@ function fireTeamsNotification(edit) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
-  }).catch(() => {});
+  }).then(res => {
+    if (!res.ok) {
+      // Fallback: try the simpler legacy format if Adaptive Card is rejected
+      const fallback = {
+        text: `📋 **Drug Reference Updated**\n\n**Drug:** ${edit.drugName}\n**Field:** ${edit.field}\n**Before:** ${before}\n**After:** ${after}\n**Updated by:** ${edit.staff}\n**Time:** ${edit.timestamp}`
+      };
+      return fetch(WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fallback)
+      });
+    }
+  }).catch(() => {
+    // Silent fail — notification is best-effort, doesn't block the save
+  });
 }
 
 // ============================================================
