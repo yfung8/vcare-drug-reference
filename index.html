@@ -291,9 +291,9 @@ function mapRow(r) {
     category:     r['Category']              || '',
     qty:          r['Qty/Strength']          || '',
     priceType:    normPriceType(r['Price Type'] || ''),
-    covPrice:     r['Covered by Insurance']  || '',
-    notCovPrice:  r['Not Covered Price']     || '',
-    cashPrice:    r['Cash Price']            || '',
+    covPrice:     r['Covered by Insurance']  !== undefined && r['Covered by Insurance']  !== null && r['Covered by Insurance']  !== '' ? String(r['Covered by Insurance'])  : '',
+    notCovPrice:  r['Not Covered Price']     !== undefined && r['Not Covered Price']     !== null && r['Not Covered Price']     !== '' ? String(r['Not Covered Price'])     : '',
+    cashPrice:    r['Cash Price']            !== undefined && r['Cash Price']            !== null && r['Cash Price']            !== '' ? String(r['Cash Price'])            : '',
     allPricing:   r['All Pricing']           || '',
     coveredOnly:  String(r['Covered Insurance Only'] || '').toUpperCase() === 'YES',
     locations:    parseLocations(r['Locations'] || ''),
@@ -330,8 +330,16 @@ function parseLocations(v) {
 function buildPricingCells(drug) {
   const cells = [];
 
-  // Try allPricing string first (pipe-separated)
-  if (drug.allPricing && String(drug.allPricing).trim()) {
+  // Always use individual price columns as primary source of truth
+  // These are updated directly in the sheet when staff submit edits
+  const hasIndividual = drug.covPrice !== '' || drug.notCovPrice !== '' || drug.cashPrice !== '';
+
+  if (hasIndividual) {
+    if (drug.covPrice    !== '') cells.push({ label: 'Covered',     val: drug.covPrice });
+    if (drug.notCovPrice !== '') cells.push({ label: 'Not Covered', val: drug.notCovPrice });
+    if (drug.cashPrice   !== '') cells.push({ label: 'Cash',        val: drug.cashPrice });
+  } else if (drug.allPricing && String(drug.allPricing).trim()) {
+    // Fall back to allPricing pipe string only if all individual fields are empty
     String(drug.allPricing).split('|').forEach(chunk => {
       const i = chunk.indexOf(':');
       if (i > -1) {
@@ -340,20 +348,6 @@ function buildPricingCells(drug) {
         if (label) cells.push({ label, val: val || 'N/A' });
       }
     });
-  }
-
-  // Always supplement with individual fields in case allPricing is missing any
-  if (!cells.length) {
-    const covVal = drug.covPrice !== undefined && drug.covPrice !== null && String(drug.covPrice).trim() !== ''
-      ? String(drug.covPrice) : null;
-    const notCovVal = drug.notCovPrice !== undefined && drug.notCovPrice !== null && String(drug.notCovPrice).trim() !== ''
-      ? String(drug.notCovPrice) : null;
-    const cashVal = drug.cashPrice !== undefined && drug.cashPrice !== null && String(drug.cashPrice).trim() !== ''
-      ? String(drug.cashPrice) : null;
-
-    if (covVal    !== null) cells.push({ label: 'Covered',     val: covVal });
-    if (notCovVal !== null) cells.push({ label: 'Not Covered', val: notCovVal });
-    if (cashVal   !== null) cells.push({ label: 'Cash',        val: cashVal });
   }
 
   if (!cells.length) cells.push({ label: 'See pharmacy', val: 'Contact us' });
