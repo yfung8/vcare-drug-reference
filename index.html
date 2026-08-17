@@ -3,132 +3,215 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>V-Care / Sunshine Pharmacy Drug Reference</title>
+<title>V-Care / Sunshine Pharmacy — Staff Tools</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/7.0.0/fuse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  :root {
-    --brand: #7B2D3E; --brand-light: #f9f0f2;
-    --accent: #2E5B8A; --accent-light: #eaf1f9;
-    --green: #2E7D52; --green-light: #eaf4ee;
-    --amber: #9A6000; --amber-light: #fff8ea;
-    --red: #c0392b; --red-light: #fdf0ee;
-    --gray: #f4f4f2; --border: #e0ddd8;
-    --text: #1a1a1a; --text-muted: #666; --text-light: #999;
-    --radius: 8px; --radius-lg: 12px;
-    --shadow: 0 1px 4px rgba(0,0,0,0.08);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; color: var(--text); background: #f0ede8; min-height: 100vh; }
+:root {
+  --brand:#7B2D3E; --brand-light:#f9f0f2; --brand-dark:#5a1f2c;
+  --accent:#2E5B8A; --accent-light:#eaf1f9;
+  --green:#2E7D52; --green-light:#eaf4ee;
+  --amber:#9A6000; --amber-light:#fff8ea;
+  --red:#c0392b; --red-light:#fdf0ee;
+  --purple:#5b2d8e; --purple-light:#f3eeff;
+  --gray:#f4f4f2; --border:#e0ddd8;
+  --text:#1a1a1a; --text-muted:#666; --text-light:#999;
+  --radius:8px; --radius-lg:12px;
+  --shadow:0 1px 4px rgba(0,0,0,0.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;color:var(--text);background:#f0ede8;min-height:100vh;}
 
-  .header { background: var(--brand); color: white; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  .header-left { display: flex; align-items: center; gap: 12px; }
-  .logo-circle { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
-  .header-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .btn { padding: 7px 14px; border-radius: var(--radius); border: 1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.15); color: white; font-size: 12px; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
-  .btn:hover { background: rgba(255,255,255,0.25); }
-  .btn-white { background: white; color: var(--brand); border-color: white; }
-  .btn-white:hover { background: #f5f5f5; color: var(--brand); }
+/* HEADER */
+.header{background:var(--brand);color:white;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.header-left{display:flex;align-items:center;gap:12px;}
+.logo-circle{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;}
+.header-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.hbtn{padding:6px 13px;border-radius:var(--radius);border:1px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.12);color:white;font-size:12px;cursor:pointer;white-space:nowrap;transition:background .15s;}
+.hbtn:hover{background:rgba(255,255,255,0.25);}
+.hbtn.active{background:white;color:var(--brand);}
 
-  .settings-panel { display: none; background: white; border-bottom: 1px solid var(--border); padding: 14px 24px; }
-  .settings-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; max-width: 860px; }
-  .settings-grid label { font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px; }
-  .settings-grid input { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; }
-  .settings-hint { font-size: 11px; color: var(--text-light); margin-top: 6px; grid-column: 1 / -1; }
+/* TABS */
+.tab-bar{background:var(--brand-dark);display:flex;gap:0;border-bottom:2px solid rgba(255,255,255,0.1);}
+.tab{padding:10px 22px;color:rgba(255,255,255,0.7);font-size:13px;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap;}
+.tab:hover{color:white;background:rgba(255,255,255,0.07);}
+.tab.active{color:white;border-bottom-color:white;font-weight:600;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
 
-  .sync-bar { background: #eaf1f9; border-bottom: 1px solid #b5d0ec; padding: 9px 24px; font-size: 13px; color: #1a3f6b; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .sync-bar.error { background: var(--red-light); border-color: #f5b8b8; color: var(--red); }
-  .sync-bar.success { background: var(--green-light); border-color: #9fd4b4; color: var(--green); }
-  .spinner { width: 14px; height: 14px; border: 2px solid rgba(0,0,0,0.15); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+/* SETTINGS */
+.settings-panel{display:none;background:white;border-bottom:1px solid var(--border);padding:14px 24px;}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;max-width:900px;}
+.settings-grid label{font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;}
+.settings-grid input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;}
 
-  .search-bar { background: white; border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; position: sticky; top: 0; z-index: 100; }
-  .search-wrap { flex: 1; min-width: 220px; position: relative; }
-  .search-wrap input { width: 100%; padding: 9px 14px 9px 36px; border: 1.5px solid var(--border); border-radius: var(--radius); font-size: 14px; outline: none; transition: border-color 0.15s; }
-  .search-wrap input:focus { border-color: var(--brand); }
-  .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-light); font-size: 15px; }
-  .filter-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  select { padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; background: white; color: var(--text); cursor: pointer; }
-  .badge-count { background: var(--brand); color: white; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
+/* SYNC BAR */
+.sync-bar{background:#eaf1f9;border-bottom:1px solid #b5d0ec;padding:8px 24px;font-size:13px;color:#1a3f6b;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.sync-bar.error{background:var(--red-light);border-color:#f5b8b8;color:var(--red);}
+.sync-bar.success{background:var(--green-light);border-color:#9fd4b4;color:var(--green);}
+.spinner{width:13px;height:13px;border:2px solid rgba(0,0,0,0.12);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
 
-  .stats-row { display: flex; gap: 10px; padding: 12px 24px; background: white; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-  .stat-card { flex: 1; min-width: 90px; background: var(--gray); border-radius: var(--radius); padding: 8px 12px; }
-  .stat-card .num { font-size: 20px; font-weight: 600; color: var(--brand); }
-  .stat-card .lbl { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+/* SEARCH / FILTER BAR */
+.search-bar{background:white;border-bottom:1px solid var(--border);padding:12px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:100;}
+.search-wrap{flex:1;min-width:200px;position:relative;}
+.search-wrap input{width:100%;padding:8px 12px 8px 34px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:14px;outline:none;transition:border-color .15s;}
+.search-wrap input:focus{border-color:var(--brand);}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-light);font-size:14px;}
+.filter-group{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+select{padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;background:white;color:var(--text);cursor:pointer;}
+.badge-count{background:var(--brand);color:white;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:600;}
 
-  .main { padding: 16px 24px; }
-  .drug-grid { display: grid; gap: 12px; }
-  .drug-card { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; transition: box-shadow 0.15s; }
-  .drug-card:hover { box-shadow: var(--shadow); }
-  .card-header { padding: 12px 16px; background: var(--gray); border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
-  .drug-name-block { flex: 1; }
-  .drug-name { font-size: 15px; font-weight: 600; color: var(--brand); }
-  .header-badges { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
-  .badge-cat { background: var(--brand-light); color: var(--brand); }
-  .badge-savings { background: var(--green-light); color: var(--green); }
-  .badge-mfr { background: var(--accent-light); color: var(--accent); }
-  .badge-loc { background: #fff3e0; color: #8a4a00; font-size: 10px; }
-  .badge-pa-yes { background: var(--red-light); color: var(--red); }
-  .badge-pa-sometimes { background: var(--amber-light); color: var(--amber); }
-  .badge-pa-rarely { background: var(--green-light); color: var(--green); }
-  .expand-icon { color: var(--text-muted); font-size: 16px; transition: transform 0.2s; flex-shrink: 0; margin-top: 2px; }
-  .expand-icon.open { transform: rotate(180deg); }
+/* STATS */
+.stats-row{display:flex;gap:8px;padding:10px 24px;background:white;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.stat-card{flex:1;min-width:80px;background:var(--gray);border-radius:var(--radius);padding:7px 10px;}
+.stat-card .num{font-size:18px;font-weight:600;color:var(--brand);}
+.stat-card .lbl{font-size:10px;color:var(--text-muted);margin-top:1px;}
 
-  .card-body { display: none; padding: 14px 16px; }
-  .card-body.open { display: block; }
+/* MAIN */
+.main{padding:14px 24px;}
+.drug-grid{display:grid;gap:10px;}
+.drug-card{background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:box-shadow .15s;}
+.drug-card:hover{box-shadow:var(--shadow);}
+.card-header{padding:11px 14px;background:var(--gray);border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;}
+.card-header-click{flex:1;cursor:pointer;}
+.drug-name{font-size:14px;font-weight:600;color:var(--brand);}
+.header-badges{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:5px;}
+.badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:500;white-space:nowrap;}
+.badge-cat{background:var(--brand-light);color:var(--brand);}
+.badge-savings{background:var(--green-light);color:var(--green);}
+.badge-mfr{background:var(--accent-light);color:var(--accent);}
+.badge-loc{background:#fff3e0;color:#8a4a00;}
+.badge-pa-yes{background:var(--red-light);color:var(--red);}
+.badge-pa-sometimes{background:var(--amber-light);color:var(--amber);}
+.badge-pa-rarely{background:var(--green-light);color:var(--green);}
+.badge-tag{background:var(--purple-light);color:var(--purple);}
+.card-actions{display:flex;gap:6px;align-items:flex-start;flex-shrink:0;}
+.expand-icon{color:var(--text-muted);font-size:14px;transition:transform .2s;cursor:pointer;padding:2px 6px;}
+.expand-icon.open{transform:rotate(180deg);}
+.add-flier-btn{padding:4px 10px;border-radius:var(--radius);border:1px solid var(--green);background:var(--green-light);color:var(--green);font-size:11px;cursor:pointer;white-space:nowrap;font-weight:500;}
+.add-flier-btn.added{background:var(--green);color:white;}
+.add-flier-btn:hover{background:var(--green);color:white;}
 
-  .section-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; margin-top: 14px; }
-  .section-label:first-child { margin-top: 0; }
+.card-body{display:none;padding:12px 14px;}
+.card-body.open{display:block;}
+.section-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;margin-top:12px;}
+.section-label:first-child{margin-top:0;}
+.price-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:7px;}
+.price-cell{background:var(--gray);border-radius:var(--radius);padding:7px 9px;}
+.price-label{font-size:10px;color:var(--text-muted);margin-bottom:2px;}
+.price-val{font-size:15px;font-weight:600;color:var(--text);}
+.price-val.free{color:var(--green);}
+.price-val.na{color:var(--text-light);font-size:12px;font-weight:400;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.info-block{background:var(--gray);border-radius:var(--radius);padding:9px 11px;}
+.info-block.full{grid-column:1/-1;}
+.ib-label{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+.ib-text{font-size:13px;color:var(--text);line-height:1.5;white-space:pre-wrap;}
+.pa-yes{color:var(--red);font-weight:600;}
+.pa-sometimes{color:var(--amber);font-weight:600;}
+.pa-rarely{color:var(--green);font-weight:600;}
+.loc-list{display:flex;gap:4px;flex-wrap:wrap;}
 
-  .price-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
-  .price-cell { background: var(--gray); border-radius: var(--radius); padding: 8px 10px; }
-  .price-label { font-size: 10px; color: var(--text-muted); margin-bottom: 3px; }
-  .price-val { font-size: 16px; font-weight: 600; color: var(--text); }
-  .price-val.free { color: var(--green); }
-  .price-val.na { color: var(--text-light); font-size: 13px; font-weight: 400; }
+/* EDIT PANEL */
+.edit-panel{background:#fafafa;border:1px solid var(--border);border-radius:var(--radius-lg);padding:13px 14px;margin-top:10px;display:none;}
+.edit-panel.open{display:block;}
+.edit-panel-title{font-size:13px;font-weight:600;color:var(--brand);margin-bottom:9px;}
+.edit-form{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.edit-form .full{grid-column:1/-1;}
+.edit-form label{font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px;}
+.edit-form input,.edit-form textarea,.edit-form select{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;background:white;}
+.edit-form textarea{min-height:60px;resize:vertical;}
+.current-val-box{font-size:11px;color:var(--text-muted);background:var(--gray);border-radius:var(--radius);padding:5px 9px;margin-bottom:5px;min-height:24px;line-height:1.5;white-space:pre-wrap;}
+.edit-actions{display:flex;gap:7px;margin-top:9px;justify-content:flex-end;align-items:center;}
+.edit-status{font-size:12px;color:var(--text-muted);flex:1;}
+.btn-primary{background:var(--brand);color:white;border:none;padding:7px 16px;border-radius:var(--radius);font-size:13px;cursor:pointer;}
+.btn-primary:hover{background:#9a3a4e;}
+.btn-primary:disabled{opacity:.55;cursor:not-allowed;}
+.btn-secondary{background:white;color:var(--text);border:1px solid var(--border);padding:7px 16px;border-radius:var(--radius);font-size:13px;cursor:pointer;}
+.btn-green{background:var(--green);color:white;border:none;padding:7px 16px;border-radius:var(--radius);font-size:13px;cursor:pointer;}
+.btn-green:hover{background:#255f3e;}
 
-  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .info-block { background: var(--gray); border-radius: var(--radius); padding: 10px 12px; }
-  .info-block.full { grid-column: 1 / -1; }
-  .ib-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
-  .ib-text { font-size: 13px; color: var(--text); line-height: 1.5; white-space: pre-wrap; }
-  .pa-yes { color: var(--red); font-weight: 600; }
-  .pa-sometimes { color: var(--amber); font-weight: 600; }
-  .pa-rarely { color: var(--green); font-weight: 600; }
-  .loc-list { display: flex; gap: 5px; flex-wrap: wrap; }
+/* SKELETONS */
+.loading-grid{display:grid;gap:10px;}
+.skeleton{background:white;border:1px solid var(--border);border-radius:var(--radius-lg);height:68px;animation:pulse 1.4s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.no-results{text-align:center;padding:40px 24px;color:var(--text-muted);}
 
-  /* INLINE EDIT */
-  .edit-panel { background: #fafafa; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-top: 12px; display: none; }
-  .edit-panel.open { display: block; }
-  .edit-panel-title { font-size: 13px; font-weight: 600; color: var(--brand); margin-bottom: 10px; }
-  .edit-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .edit-form .full { grid-column: 1 / -1; }
-  .edit-form label { font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 3px; }
-  .edit-form input, .edit-form textarea, .edit-form select { width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; background: white; }
-  .edit-form textarea { min-height: 65px; resize: vertical; }
-  .edit-actions { display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end; align-items: center; }
-  .edit-status { font-size: 12px; color: var(--text-muted); flex: 1; }
-  .btn-primary { background: var(--brand); color: white; border: none; padding: 8px 18px; border-radius: var(--radius); font-size: 13px; cursor: pointer; }
-  .btn-primary:hover { background: #9a3a4e; }
-  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-  .btn-secondary { background: white; color: var(--text); border: 1px solid var(--border); padding: 8px 18px; border-radius: var(--radius); font-size: 13px; cursor: pointer; }
+/* ===================== FLIER BUILDER ===================== */
+.flier-layout{display:grid;grid-template-columns:1fr 340px;gap:16px;padding:16px 24px;align-items:start;}
+.flier-left{}
+.flier-right{position:sticky;top:0;}
+.flier-sidebar{background:white;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+.flier-sidebar-header{background:var(--brand);color:white;padding:12px 14px;font-size:13px;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
+.flier-empty{text-align:center;padding:24px;color:var(--text-muted);font-size:13px;}
+.flier-item{border-top:1px solid var(--border);padding:10px 12px;display:flex;align-items:flex-start;gap:8px;}
+.flier-item-info{flex:1;}
+.flier-item-name{font-size:13px;font-weight:600;color:var(--text);}
+.flier-item-price{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.flier-price-override{display:flex;gap:6px;margin-top:6px;align-items:center;}
+.flier-price-override input{width:90px;padding:4px 7px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;}
+.flier-price-override label{font-size:11px;color:var(--text-muted);}
+.flier-push-row{display:flex;gap:6px;align-items:center;margin-top:5px;}
+.flier-push-row input[type=checkbox]{width:14px;height:14px;cursor:pointer;}
+.flier-push-row label{font-size:11px;color:var(--text-muted);cursor:pointer;}
+.remove-flier-btn{background:none;border:none;color:var(--text-light);font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0;}
+.remove-flier-btn:hover{color:var(--red);}
+.flier-export-bar{background:white;border-top:1px solid var(--border);padding:12px 14px;display:flex;gap:8px;flex-wrap:wrap;}
+.flier-filter-bar{background:white;border-bottom:1px solid var(--border);padding:10px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.flier-drug-grid{padding:14px 24px;display:grid;gap:8px;}
+.flier-drug-row{background:white;border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;display:flex;align-items:center;gap:12px;}
+.flier-drug-row .drug-info{flex:1;}
+.flier-drug-row .drug-info .name{font-size:13px;font-weight:600;color:var(--brand);}
+.flier-drug-row .drug-info .sub{font-size:12px;color:var(--text-muted);}
+.staff-init-row{padding:10px 24px;background:#fffbf0;border-bottom:1px solid #f0e0a0;display:flex;gap:10px;align-items:center;}
+.staff-init-row label{font-size:12px;color:var(--amber);font-weight:500;}
+.staff-init-row input{padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;width:220px;}
 
-  .no-results { text-align: center; padding: 48px 24px; color: var(--text-muted); }
-  .loading-grid { display: grid; gap: 12px; }
-  .skeleton { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); height: 72px; animation: pulse 1.4s ease-in-out infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+/* ===================== FLIER LIBRARY ===================== */
+.library-layout{padding:16px 24px;}
+.library-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+.library-grid{display:grid;gap:10px;}
+.library-card{background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;}
+.library-icon{width:44px;height:44px;border-radius:var(--radius);background:var(--red-light);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.library-info{}
+.library-name{font-size:14px;font-weight:600;color:var(--text);}
+.library-meta{font-size:11px;color:var(--text-muted);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap;}
+.library-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;}
+.library-actions{display:flex;gap:7px;align-items:center;flex-shrink:0;}
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius-lg);padding:32px 24px;text-align:center;background:white;cursor:pointer;transition:border-color .15s;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--brand);background:var(--brand-light);}
+.upload-zone input[type=file]{display:none;}
+.upload-form{background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;margin-top:12px;display:none;}
+.upload-form.open{display:block;}
+.upload-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.upload-form-grid .full{grid-column:1/-1;}
+.upload-form label{font-size:11px;color:var(--text-muted);display:block;margin-bottom:3px;}
+.upload-form input,.upload-form select,.upload-form textarea{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;}
+.tag-input-wrap{position:relative;}
+.tag-suggestions{position:absolute;top:100%;left:0;right:0;background:white;border:1px solid var(--border);border-radius:var(--radius);z-index:50;max-height:150px;overflow-y:auto;display:none;}
+.tag-suggestions.open{display:block;}
+.tag-suggestion-item{padding:6px 10px;font-size:13px;cursor:pointer;}
+.tag-suggestion-item:hover{background:var(--gray);}
+.selected-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;}
+.sel-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:var(--purple);color:white;font-size:11px;}
+.sel-tag button{background:none;border:none;color:white;font-size:13px;cursor:pointer;padding:0;line-height:1;}
+.version-badge{padding:2px 7px;border-radius:999px;font-size:10px;font-weight:600;}
+.version-content{background:var(--brand-light);color:var(--brand);}
+.version-design{background:var(--gray);color:var(--text-muted);}
 
-  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--text); color: white; padding: 10px 18px; border-radius: var(--radius); font-size: 13px; z-index: 9999; opacity: 0; transition: opacity 0.3s; pointer-events: none; max-width: 320px; }
-  .toast.show { opacity: 1; }
-  .toast.success { background: var(--green); }
-  .toast.error { background: var(--red); }
+/* TOAST */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--text);color:white;padding:9px 16px;border-radius:var(--radius);font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;max-width:300px;}
+.toast.show{opacity:1;}
+.toast.success{background:var(--green);}
+.toast.error{background:var(--red);}
 
-  @media (max-width: 600px) {
-    .header, .search-bar, .main, .stats-row { padding: 12px; }
-    .info-grid, .edit-form { grid-template-columns: 1fr; }
-    .settings-grid { grid-template-columns: 1fr; }
-  }
+@media(max-width:700px){
+  .flier-layout{grid-template-columns:1fr;}
+  .info-grid,.edit-form,.upload-form-grid{grid-template-columns:1fr;}
+  .settings-grid{grid-template-columns:1fr;}
+  .library-card{grid-template-columns:auto 1fr;}.library-actions{grid-column:1/-1;}
+}
 </style>
 </head>
 <body>
@@ -138,51 +221,120 @@
   <div class="header-left">
     <div class="logo-circle">VCP</div>
     <div>
-      <div style="font-size:17px;font-weight:600;">V-Care / Sunshine Pharmacy</div>
-      <div style="font-size:11px;opacity:0.75;margin-top:2px;">Internal Drug Reference — Staff Use Only</div>
+      <div style="font-size:16px;font-weight:600;">V-Care / Sunshine Pharmacy</div>
+      <div style="font-size:11px;opacity:.75;margin-top:1px;">Internal Staff Tools</div>
     </div>
   </div>
   <div class="header-right">
-    <button class="btn" onclick="refreshData()" id="refreshBtn" title="Re-fetch latest data from Google Sheets">↻ Refresh</button>
-    <button class="btn" onclick="toggleSettings()">⚙ Settings</button>
-    <button class="btn" onclick="exportExcel()">↓ Export Excel</button>
+    <button class="hbtn" onclick="refreshData()">↻ Refresh</button>
+    <button class="hbtn" onclick="toggleSettings()">⚙ Settings</button>
+    <button class="hbtn" onclick="exportExcel()">↓ Export Excel</button>
   </div>
 </div>
 
-<!-- SETTINGS PANEL -->
+<!-- TABS -->
+<div class="tab-bar">
+  <div class="tab active" onclick="switchTab('drug-ref')">💊 Drug Reference</div>
+  <div class="tab" onclick="switchTab('flier-builder')">📋 Flier Builder</div>
+  <div class="tab" onclick="switchTab('flier-library')">📁 Flier Library</div>
+</div>
+
+<!-- SETTINGS -->
 <div class="settings-panel" id="settingsPanel">
   <div class="settings-grid">
-    <div>
-      <label>Google Apps Script URL (your live data source)</label>
-      <input type="url" id="cfgApi" placeholder="https://script.google.com/macros/s/.../exec" />
-    </div>
-    <div>
-      <label>Secret key (must match your Apps Script)</label>
-      <input type="password" id="cfgKey" placeholder="Your secret key" />
-    </div>
+    <div><label>Apps Script URL</label><input type="url" id="cfgApi" /></div>
+    <div><label>Secret key</label><input type="password" id="cfgKey" /></div>
     <button class="btn-primary" onclick="saveSettings()">Save &amp; Reload</button>
-    <div class="settings-hint">Teams Webhook URL (optional — paste to get a Teams notification on every edit submission)</div>
-    <div style="grid-column:1/3">
-      <input type="url" id="cfgWebhook" placeholder="https://outlook.office.com/webhook/..." />
-    </div>
+    <div style="grid-column:1/3"><label>Teams Webhook URL (optional)</label><input type="url" id="cfgWebhook" /></div>
     <button class="btn-secondary" onclick="saveSettings()">Save</button>
   </div>
 </div>
 
-<!-- SYNC STATUS BAR -->
+<!-- SYNC BAR -->
 <div class="sync-bar" id="syncBar">
   <div class="spinner" id="syncSpinner"></div>
   <span id="syncMsg">Connecting to Google Sheets...</span>
 </div>
 
-<!-- SEARCH BAR -->
-<div class="search-bar">
-  <div class="search-wrap">
-    <span class="search-icon">🔍</span>
-    <input type="text" id="searchInput" placeholder="Search by drug name, brand, generic, use, ingredient..." oninput="doSearch()" autocomplete="off" />
+<!-- ============================= TAB 1: DRUG REFERENCE ============================= -->
+<div class="tab-panel active" id="tab-drug-ref">
+
+  <!-- SEARCH BAR -->
+  <div class="search-bar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search drug name, brand, generic, use, tag..." oninput="doSearch()" autocomplete="off" />
+    </div>
+    <div class="filter-group">
+      <select id="filterCat" onchange="doSearch()">
+        <option value="">All categories</option>
+        <option value="Dermatology Brand">Derm Brand</option>
+        <option value="Dermatology Generic">Derm Generic</option>
+        <option value="Women's Health">Women's Health</option>
+        <option value="Men's Health">Men's Health</option>
+        <option value="Compounded">Compounded</option>
+        <option value="HRT Compound">HRT Compound</option>
+      </select>
+      <select id="filterLoc" onchange="doSearch()">
+        <option value="">All locations</option>
+        <option value="Framingham">Framingham</option>
+        <option value="Chestnut Hill">Chestnut Hill</option>
+        <option value="Danvers">Danvers</option>
+        <option value="CT">CT</option>
+        <option value="NH">NH</option>
+        <option value="RI">RI</option>
+        <option value="NY">NY (Sunshine)</option>
+      </select>
+      <select id="filterPA" onchange="doSearch()">
+        <option value="">PA: all</option>
+        <option value="yes">Usually requires PA</option>
+        <option value="sometimes">Sometimes PA</option>
+        <option value="rarely">Rarely needs PA</option>
+      </select>
+      <select id="filterPrice" onchange="doSearch()">
+        <option value="">Price type: all</option>
+        <option value="savings">Savings program</option>
+        <option value="manufacturer">Manufacturer coupon</option>
+      </select>
+      <span id="resultCount" class="badge-count">—</span>
+    </div>
   </div>
-  <div class="filter-group">
-    <select id="filterCat" onchange="doSearch()">
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card"><div class="num" id="statTotal">—</div><div class="lbl">Total</div></div>
+    <div class="stat-card"><div class="num" id="statDerm">—</div><div class="lbl">Dermatology</div></div>
+    <div class="stat-card"><div class="num" id="statWomens">—</div><div class="lbl">Women's</div></div>
+    <div class="stat-card"><div class="num" id="statMens">—</div><div class="lbl">Men's</div></div>
+    <div class="stat-card"><div class="num" id="statCompound">—</div><div class="lbl">Compound</div></div>
+    <div class="stat-card"><div class="num" id="statLastSync" style="font-size:12px;">—</div><div class="lbl">Synced</div></div>
+  </div>
+
+  <div class="main">
+    <div id="loadingGrid" class="loading-grid">
+      <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+      <div class="skeleton"></div><div class="skeleton"></div>
+    </div>
+    <div id="drugGrid" class="drug-grid" style="display:none;"></div>
+    <div id="noResults" class="no-results" style="display:none;">
+      <div style="font-size:28px;margin-bottom:8px;">🔍</div>
+      <div style="font-weight:600;margin-bottom:4px;">No results found</div>
+      <div style="font-size:13px;">Try a different search term or clear filters</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= TAB 2: FLIER BUILDER ============================= -->
+<div class="tab-panel" id="tab-flier-builder">
+
+  <div class="staff-init-row">
+    <label>⚠ Your name / initials (required for any price changes):</label>
+    <input type="text" id="flierStaff" placeholder="e.g. JD – Chestnut Hill" />
+  </div>
+
+  <div class="flier-filter-bar">
+    <span style="font-size:13px;font-weight:500;color:var(--text-muted);">Filter by:</span>
+    <select id="flierFilterCat" onchange="renderFlierDrugs()">
       <option value="">All categories</option>
       <option value="Dermatology Brand">Derm Brand</option>
       <option value="Dermatology Generic">Derm Generic</option>
@@ -191,50 +343,161 @@
       <option value="Compounded">Compounded</option>
       <option value="HRT Compound">HRT Compound</option>
     </select>
-    <select id="filterLoc" onchange="doSearch()">
+    <select id="flierFilterLoc" onchange="renderFlierDrugs()">
       <option value="">All locations</option>
-      <option value="MA">MA</option>
+      <option value="Framingham">Framingham</option>
+      <option value="Chestnut Hill">Chestnut Hill</option>
+      <option value="Danvers">Danvers</option>
       <option value="CT">CT</option>
       <option value="NH">NH</option>
       <option value="RI">RI</option>
       <option value="NY">NY (Sunshine)</option>
     </select>
-    <select id="filterPA" onchange="doSearch()">
-      <option value="">PA: all</option>
-      <option value="yes">Usually requires PA</option>
-      <option value="sometimes">Sometimes PA</option>
-      <option value="rarely">Rarely needs PA</option>
-    </select>
-    <select id="filterPrice" onchange="doSearch()">
-      <option value="">Price type: all</option>
-      <option value="savings">Savings program</option>
-      <option value="manufacturer">Manufacturer coupon</option>
-    </select>
-    <span id="resultCount" class="badge-count">—</span>
+    <div class="search-wrap" style="max-width:280px;">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="flierSearch" placeholder="Search drugs..." oninput="renderFlierDrugs()" autocomplete="off" style="padding:7px 12px 7px 32px;" />
+    </div>
+    <span style="font-size:12px;color:var(--text-muted);margin-left:auto;">Click ➕ to add drug to flier list →</span>
+  </div>
+
+  <div class="flier-layout">
+    <!-- LEFT: drug pick list -->
+    <div class="flier-left">
+      <div id="flierDrugGrid" class="flier-drug-grid" style="padding:0;"></div>
+    </div>
+
+    <!-- RIGHT: staging sidebar -->
+    <div class="flier-right">
+      <div class="flier-sidebar">
+        <div class="flier-sidebar-header">
+          <span>📋 Flier List (<span id="flierCount">0</span>)</span>
+          <button class="hbtn" style="font-size:11px;padding:4px 10px;" onclick="clearFlierList()">Clear all</button>
+        </div>
+        <div id="flierList">
+          <div class="flier-empty" id="flierEmpty">No drugs added yet.<br>Use the list on the left to add drugs.</div>
+        </div>
+        <div class="flier-export-bar">
+          <button class="btn-primary" onclick="exportFlierExcel()" style="font-size:12px;">↓ Export Excel</button>
+          <button class="btn-secondary" onclick="exportFlierPDF()" style="font-size:12px;">↓ Export PDF</button>
+          <button class="btn-green" onclick="pushFlierChanges()" style="font-size:12px;">↑ Push price changes to Sheet</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- STATS -->
-<div class="stats-row">
-  <div class="stat-card"><div class="num" id="statTotal">—</div><div class="lbl">Total entries</div></div>
-  <div class="stat-card"><div class="num" id="statDerm">—</div><div class="lbl">Dermatology</div></div>
-  <div class="stat-card"><div class="num" id="statWomens">—</div><div class="lbl">Women's health</div></div>
-  <div class="stat-card"><div class="num" id="statMens">—</div><div class="lbl">Men's health</div></div>
-  <div class="stat-card"><div class="num" id="statCompound">—</div><div class="lbl">Compounded</div></div>
-  <div class="stat-card"><div class="num" id="statLastSync" style="font-size:13px;">—</div><div class="lbl">Last synced</div></div>
-</div>
+<!-- ============================= TAB 3: FLIER LIBRARY ============================= -->
+<div class="tab-panel" id="tab-flier-library">
+  <div style="padding:16px 24px;">
 
-<div class="main">
-  <!-- skeleton loaders shown while fetching -->
-  <div id="loadingGrid" class="loading-grid">
-    <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
-    <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
-  </div>
-  <div id="drugGrid" class="drug-grid" style="display:none;"></div>
-  <div id="noResults" class="no-results" style="display:none;">
-    <div style="font-size:32px;margin-bottom:8px;">🔍</div>
-    <div style="font-weight:600;margin-bottom:4px;">No results found</div>
-    <div style="font-size:13px;">Try a different search term or clear filters</div>
+    <!-- UPLOAD ZONE -->
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()"
+      ondragover="event.preventDefault();this.classList.add('drag')"
+      ondragleave="this.classList.remove('drag')"
+      ondrop="handleFileDrop(event)">
+      <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileSelect(event)" />
+      <div style="font-size:28px;margin-bottom:8px;">📎</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text-muted);">Click or drag a file to upload a flier</div>
+      <div style="font-size:12px;color:var(--text-light);margin-top:4px;">PDF, JPG, or PNG accepted</div>
+    </div>
+
+    <!-- UPLOAD FORM (appears after file selected) -->
+    <div class="upload-form" id="uploadForm">
+      <div style="font-size:14px;font-weight:600;color:var(--brand);margin-bottom:12px;">📄 <span id="uploadFileName"></span></div>
+      <div class="upload-form-grid">
+        <div>
+          <label>Store / Location <span style="color:var(--red);">*</span></label>
+          <select id="uploadStore">
+            <option value="">Select store...</option>
+            <option value="Framingham MA">Framingham, MA</option>
+            <option value="Chestnut Hill MA">Chestnut Hill, MA</option>
+            <option value="Danvers MA">Danvers, MA</option>
+            <option value="CT">Connecticut (CT)</option>
+            <option value="NH">New Hampshire (NH)</option>
+            <option value="RI">Rhode Island (RI)</option>
+            <option value="NY Sunshine">Sunshine NY</option>
+            <option value="All Locations">All Locations</option>
+          </select>
+        </div>
+        <div>
+          <label>Your initials / name <span style="color:var(--red);">*</span></label>
+          <input type="text" id="uploadInitials" placeholder="e.g. JD" />
+        </div>
+        <div>
+          <label>Primary category <span style="color:var(--red);">*</span></label>
+          <select id="uploadCategory">
+            <option value="">Select category...</option>
+            <option value="Dermatology">Dermatology</option>
+            <option value="Compounding">Compounding</option>
+            <option value="Women's Health">Women's Health</option>
+            <option value="Men's Health">Men's Health</option>
+            <option value="Seasonal Update">Seasonal Update</option>
+            <option value="Misc">Misc</option>
+          </select>
+        </div>
+        <div>
+          <label>Upload type</label>
+          <select id="uploadType">
+            <option value="content">Content change (new version)</option>
+            <option value="design">Design only — no content change</option>
+          </select>
+        </div>
+        <div class="full">
+          <label>Tags <span style="font-size:10px;color:var(--text-muted);">(type and press Enter or comma to add — create new tags freely)</span></label>
+          <div class="tag-input-wrap">
+            <input type="text" id="uploadTagInput" placeholder="e.g. acne, isotretinoin, rosacea..." oninput="onTagInput()" onkeydown="onTagKeydown(event)" />
+            <div class="tag-suggestions" id="tagSuggestions"></div>
+          </div>
+          <div class="selected-tags" id="selectedUploadTags"></div>
+        </div>
+        <div class="full">
+          <label>Notes (optional)</label>
+          <textarea id="uploadNotes" placeholder="e.g. Updated isotretinoin pricing, added Qbrexza..." style="min-height:50px;"></textarea>
+        </div>
+        <div class="full" id="replaceSection" style="display:none;">
+          <label>Replace existing flier? <span style="font-size:10px;color:var(--text-muted);">(leave blank to add as new)</span></label>
+          <select id="replaceTarget">
+            <option value="">Add as new entry</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
+        <button class="btn-secondary" onclick="cancelUpload()">Cancel</button>
+        <button class="btn-primary" onclick="submitUpload()" id="uploadSubmitBtn">Upload to Library</button>
+      </div>
+    </div>
+
+    <!-- SEARCH / FILTER BAR -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:16px;margin-bottom:10px;">
+      <div class="search-wrap" style="max-width:320px;">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="librarySearch" placeholder="Search flier name, tags, notes..." oninput="renderLibrary()" style="padding:8px 12px 8px 32px;" />
+      </div>
+      <select id="libraryFilterStore" onchange="renderLibrary()">
+        <option value="">All stores</option>
+        <option value="Framingham MA">Framingham</option>
+        <option value="Chestnut Hill MA">Chestnut Hill</option>
+        <option value="Danvers MA">Danvers</option>
+        <option value="CT">CT</option>
+        <option value="NH">NH</option>
+        <option value="RI">RI</option>
+        <option value="NY Sunshine">Sunshine NY</option>
+        <option value="All Locations">All Locations</option>
+      </select>
+      <select id="libraryFilterCat" onchange="renderLibrary()">
+        <option value="">All categories</option>
+        <option value="Dermatology">Dermatology</option>
+        <option value="Compounding">Compounding</option>
+        <option value="Women's Health">Women's Health</option>
+        <option value="Men's Health">Men's Health</option>
+        <option value="Seasonal Update">Seasonal Update</option>
+        <option value="Misc">Misc</option>
+      </select>
+      <span id="libraryCount" class="badge-count">—</span>
+    </div>
+
+    <!-- LIBRARY GRID -->
+    <div id="libraryGrid" class="library-grid"></div>
   </div>
 </div>
 
@@ -242,50 +505,53 @@
 
 <script>
 // ============================================================
-// CONFIG — stored in localStorage so it survives page refresh
+// CONFIG
 // ============================================================
-const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbx1AfND3YEQ4Uld7RbeGB5adzLAq6O-e9hoGR_5_XKJ1-3DfzGJSt-ayeDpbRhiLQjH/exec';
+const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbzgtFMcRZD0JV9MV4ljVRszqJ8Itr1O189nPcdQG4I9RWvYhIL3064g7EIzaZmpxrc/exec';
 const DEFAULT_KEY = '1437418399';
+const DRIVE_FOLDER_ID = '1p2W4m9QAXFxd2LglBsdMOQImT0vlYD_Y';
 
-// If the stored URL is an old deployment, clear it so the new default is used
+// Clear stale cached URLs
 const storedApi = localStorage.getItem('apiUrl');
-const knownOldUrls = [
-  'AKfycbwubv8v',
-  'AKfycbw9ZvYX',
-  'AKfycbwZ2m3Y',
-  'AKfycbwubv8v'
-];
-if (storedApi && knownOldUrls.some(old => storedApi.includes(old))) {
-  localStorage.removeItem('apiUrl');
-}
+const OLD = ['AKfycbwubv8v','AKfycbw9ZvYX','AKfycbwZ2m3Y','AKfycbx1AfND'];
+if (storedApi && OLD.some(o => storedApi.includes(o))) localStorage.removeItem('apiUrl');
 
-function getCfg(k, def) { return localStorage.getItem(k) || def; }
-function setCfg(k, v) { localStorage.setItem(k, v); }
+function getCfg(k,d){ return localStorage.getItem(k)||d; }
+function setCfg(k,v){ localStorage.setItem(k,v); }
 
 let API_URL = getCfg('apiUrl', DEFAULT_API);
 let SECRET  = getCfg('apiKey', DEFAULT_KEY);
-let WEBHOOK = getCfg('teamsWebhook', 'https://defaultdfae3167ff834ba9b4f409615a6a1c.3a.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/7d5604435fea476e83200000a30df7e2/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=HQwJzLNYsiq3aRsHdcnVcsH0dk7R91uGeHrxHf4KBpk');
+let WEBHOOK = getCfg('teamsWebhook','https://defaultdfae3167ff834ba9b4f409615a6a1c.3a.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/7d5604435fea476e83200000a30df7e2/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=HQwJzLNYsiq3aRsHdcnVcsH0dk7R91uGeHrxHf4KBpk');
 
-// Populate settings fields on load
 document.getElementById('cfgApi').value = API_URL;
 document.getElementById('cfgKey').value = SECRET;
 document.getElementById('cfgWebhook').value = WEBHOOK;
 
-function saveSettings() {
-  API_URL = document.getElementById('cfgApi').value.trim() || DEFAULT_API;
-  SECRET  = document.getElementById('cfgKey').value.trim() || DEFAULT_KEY;
+function saveSettings(){
+  API_URL = document.getElementById('cfgApi').value.trim()||DEFAULT_API;
+  SECRET  = document.getElementById('cfgKey').value.trim()||DEFAULT_KEY;
   WEBHOOK = document.getElementById('cfgWebhook').value.trim();
-  setCfg('apiUrl', API_URL);
-  setCfg('apiKey', SECRET);
-  setCfg('teamsWebhook', WEBHOOK);
-  toggleSettings();
-  showToast('Settings saved — reloading data...', 'success');
-  refreshData();
+  setCfg('apiUrl',API_URL); setCfg('apiKey',SECRET); setCfg('teamsWebhook',WEBHOOK);
+  toggleSettings(); showToast('Settings saved','success'); refreshData();
+}
+function toggleSettings(){
+  const p=document.getElementById('settingsPanel');
+  p.style.display=p.style.display==='none'||!p.style.display?'block':'none';
 }
 
-function toggleSettings() {
-  const p = document.getElementById('settingsPanel');
-  p.style.display = p.style.display === 'none' || p.style.display === '' ? 'block' : 'none';
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(id){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    const ids=['drug-ref','flier-builder','flier-library'];
+    t.classList.toggle('active', ids[i]===id);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p=>{
+    p.classList.toggle('active', p.id==='tab-'+id);
+  });
+  if(id==='flier-builder') renderFlierDrugs();
+  if(id==='flier-library'){ fetchLibrary(); }
 }
 
 // ============================================================
@@ -294,284 +560,211 @@ function toggleSettings() {
 let DRUGS = [];
 let fuseIndex = null;
 
-// Map sheet column names → internal field names
-function mapRow(r) {
+function mapRow(r){
   return {
-    id:           r['id']                    || r['ID'] || '',
-    name:         r['Drug Name']             || '',
-    altName:      r['Alt Name / Generic']    || '',
-    category:     r['Category']              || '',
-    qty:          r['Qty/Strength']          || '',
-    priceType:    normPriceType(r['Price Type'] || ''),
-    covPrice:     r['Covered by Insurance']  !== undefined && r['Covered by Insurance']  !== null && r['Covered by Insurance']  !== '' ? String(r['Covered by Insurance'])  : '',
-    notCovPrice:  r['Not Covered Price']     !== undefined && r['Not Covered Price']     !== null && r['Not Covered Price']     !== '' ? String(r['Not Covered Price'])     : '',
-    cashPrice:    r['Cash Price']            !== undefined && r['Cash Price']            !== null && r['Cash Price']            !== '' ? String(r['Cash Price'])            : '',
-    allPricing:   r['All Pricing']           || '',
-    coveredOnly:  String(r['Covered Insurance Only'] || '').toUpperCase() === 'YES',
-    locations:    parseLocations(r['Locations'] || ''),
-    use:          r['Common Use']            || '',
-    sideEffects:  r['Side Effects']          || '',
-    pa:           normPA(r['PA Likelihood']  || ''),
-    paNotes:      r['PA Notes']              || '',
-    coveredAlts:  r['Covered Alternatives']  || '',
-    alternatives: r['Other Alternatives']    || '',
-    lastUpdated:  r['lastUpdated']           || '',
-    updatedBy:    r['updatedBy']             || ''
+    id:           r['id']||'',
+    name:         r['Drug Name']||'',
+    altName:      r['Alt Name / Generic']||'',
+    category:     r['Category']||'',
+    qty:          r['Qty/Strength']||'',
+    priceType:    normPriceType(r['Price Type']||''),
+    covPrice:     r['Covered by Insurance']!==undefined&&r['Covered by Insurance']!==null&&r['Covered by Insurance']!==''?String(r['Covered by Insurance']):'',
+    notCovPrice:  r['Not Covered Price']!==undefined&&r['Not Covered Price']!==null&&r['Not Covered Price']!==''?String(r['Not Covered Price']):'',
+    cashPrice:    r['Cash Price']!==undefined&&r['Cash Price']!==null&&r['Cash Price']!==''?String(r['Cash Price']):'',
+    allPricing:   r['All Pricing']||'',
+    coveredOnly:  String(r['Covered Insurance Only']||'').toUpperCase()==='YES',
+    locations:    parseLocations(r['Locations']||''),
+    use:          r['Common Use']||'',
+    sideEffects:  r['Side Effects']||'',
+    pa:           normPA(r['PA Likelihood']||''),
+    paNotes:      r['PA Notes']||'',
+    coveredAlts:  r['Covered Alternatives']||'',
+    alternatives: r['Other Alternatives']||'',
+    tags:         parseTags(r['Tags']||''),
+    lastUpdated:  r['lastUpdated']||'',
+    updatedBy:    r['updatedBy']||''
   };
 }
+function normPriceType(v){ const s=v.toLowerCase(); return s.includes('savings')||s.includes('program')?'savings':'manufacturer'; }
+function normPA(v){ const s=v.toLowerCase(); if(s==='yes'||s.includes('usually')||s.includes('often'))return'yes'; if(s==='rarely'||s.includes('rarely')||s.includes('no'))return'rarely'; return'sometimes'; }
+function parseLocations(v){ return v?v.split(/[,;]/).map(s=>s.trim()).filter(Boolean):[]; }
+function parseTags(v){ return v?v.split(/[,;]/).map(s=>s.trim().toLowerCase()).filter(Boolean):[]; }
 
-function normPriceType(v) {
-  const s = v.toLowerCase();
-  if (s.includes('savings') || s.includes('program')) return 'savings';
-  if (s.includes('manufacturer') || s.includes('coupon')) return 'manufacturer';
-  return 'savings';
-}
-
-function normPA(v) {
-  const s = v.toLowerCase();
-  if (s === 'yes' || s.includes('usually') || s.includes('often')) return 'yes';
-  if (s === 'rarely' || s.includes('rarely') || s.includes('no')) return 'rarely';
-  return 'sometimes';
-}
-
-function parseLocations(v) {
-  if (!v) return [];
-  return v.split(/[,;]/).map(s => s.trim()).filter(Boolean);
-}
-
-function buildPricingCells(drug) {
-  const cells = [];
-
-  // Always use individual price columns as primary source of truth
-  // These are updated directly in the sheet when staff submit edits
-  const hasIndividual = drug.covPrice !== '' || drug.notCovPrice !== '' || drug.cashPrice !== '';
-
-  if (hasIndividual) {
-    if (drug.covPrice    !== '') cells.push({ label: 'Covered',     val: drug.covPrice });
-    if (drug.notCovPrice !== '') cells.push({ label: 'Not Covered', val: drug.notCovPrice });
-    if (drug.cashPrice   !== '') cells.push({ label: 'Cash',        val: drug.cashPrice });
-  } else if (drug.allPricing && String(drug.allPricing).trim()) {
-    // Fall back to allPricing pipe string only if all individual fields are empty
-    String(drug.allPricing).split('|').forEach(chunk => {
-      const i = chunk.indexOf(':');
-      if (i > -1) {
-        const label = chunk.slice(0, i).trim();
-        const val   = chunk.slice(i + 1).trim();
-        if (label) cells.push({ label, val: val || 'N/A' });
-      }
+function buildPricingCells(drug){
+  const cells=[];
+  const hasInd = drug.covPrice!==''||drug.notCovPrice!==''||drug.cashPrice!=='';
+  if(hasInd){
+    if(drug.covPrice!=='')    cells.push({label:'Covered',    val:drug.covPrice});
+    if(drug.notCovPrice!=='') cells.push({label:'Not Covered',val:drug.notCovPrice});
+    if(drug.cashPrice!=='')   cells.push({label:'Cash',       val:drug.cashPrice});
+  } else if(drug.allPricing&&String(drug.allPricing).trim()){
+    String(drug.allPricing).split('|').forEach(chunk=>{
+      const i=chunk.indexOf(':');
+      if(i>-1){ const l=chunk.slice(0,i).trim(),v=chunk.slice(i+1).trim(); if(l)cells.push({label:l,val:v||'N/A'}); }
     });
   }
-
-  if (!cells.length) cells.push({ label: 'See pharmacy', val: 'Contact us' });
+  if(!cells.length) cells.push({label:'See pharmacy',val:'Contact us'});
   return cells;
 }
 
+// Collect all unique tags across all drugs
+function getAllTags(){
+  const map={};
+  DRUGS.forEach(d=>d.tags.forEach(t=>{ map[t]=(map[t]||0)+1; }));
+  return Object.entries(map).sort((a,b)=>b[1]-a[1]);
+}
+
+function renderTagCloud(){
+  const cloud=document.getElementById('tagCloud');
+  const tags=getAllTags();
+  if(!tags.length){ cloud.innerHTML='<span class="tag-cloud-label">Tags:</span><span style="font-size:12px;color:var(--text-light);">No tags yet — add tags to drug entries to see them here.</span>'; return; }
+  cloud.innerHTML='<span class="tag-cloud-label">Tags:</span>'+
+    tags.map(([t,c])=>`<span class="tag-chip${activeTagFilter===t?' active':''}" onclick="filterByTag('${t}')">#${t} <span style="opacity:.6">${c}</span></span>`).join('');
+}
+
+function filterByTag(tag){
+  activeTagFilter = activeTagFilter===tag?'':tag;
+  document.getElementById('searchInput').value='';
+  doSearch();
+  renderTagCloud();
+}
+
 // ============================================================
-// FETCH FROM GOOGLE SHEETS
+// FETCH
 // ============================================================
-async function fetchData() {
-  setSyncState('loading', 'Fetching latest data from Google Sheets...');
-  try {
-    const bustCache = `${API_URL}?t=${Date.now()}&r=${Math.random()}`;
-    const res = await fetch(bustCache, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    if (json.status !== 'ok') throw new Error(json.message || 'Unknown error from script');
-
-    DRUGS = json.data.map(mapRow).filter(d => d.name);
-    fuseIndex = new Fuse(DRUGS, {
-      keys: ['name','altName','use','category','alternatives','coveredAlts','paNotes'],
-      threshold: 0.35, includeScore: true, minMatchCharLength: 2
-    });
-
-    updateStats();
-    doSearch();
-
-    const now = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    document.getElementById('statLastSync').textContent = now;
-    setSyncState('success', `✓ Synced — ${DRUGS.length} entries loaded from Google Sheets. Last updated: ${now}`);
-    document.getElementById('loadingGrid').style.display = 'none';
-    document.getElementById('drugGrid').style.display = 'grid';
-
-  } catch (err) {
-    setSyncState('error', `⚠ Could not load data from Google Sheets: ${err.message} — Check Settings or try Refresh.`);
-    document.getElementById('loadingGrid').style.display = 'none';
-    document.getElementById('noResults').style.display = 'block';
-    document.getElementById('noResults').innerHTML = `
-      <div style="font-size:28px;margin-bottom:8px;">⚠</div>
-      <div style="font-weight:600;margin-bottom:6px;">Could not connect to Google Sheets</div>
-      <div style="font-size:13px;color:var(--text-muted);max-width:480px;margin:0 auto;">${err.message}<br><br>
-      Make sure the Apps Script is deployed as a Web App with <strong>"Anyone"</strong> access, then click <strong>Refresh</strong> or check <strong>Settings</strong>.</div>
-      <button class="btn-primary" style="margin-top:16px;" onclick="refreshData()">↻ Try again</button>`;
+async function fetchData(){
+  setSyncState('loading','Fetching latest data from Google Sheets...');
+  try{
+    const bust=`${API_URL}?t=${Date.now()}&r=${Math.random()}`;
+    const res=await fetch(bust,{cache:'no-store'});
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json=await res.json();
+    if(json.status!=='ok') throw new Error(json.message||'Script error');
+    DRUGS=json.data.map(mapRow).filter(d=>d.name);
+    fuseIndex=new Fuse(DRUGS,{keys:['name','altName','use','category','alternatives','coveredAlts','paNotes','tags'],threshold:.35,includeScore:true,minMatchCharLength:2});
+    updateStats(); doSearch();
+    const now=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('statLastSync').textContent=now;
+    setSyncState('success',`✓ ${DRUGS.length} entries loaded. Last synced: ${now}`);
+    document.getElementById('loadingGrid').style.display='none';
+    document.getElementById('drugGrid').style.display='grid';
+  } catch(err){
+    setSyncState('error',`⚠ Could not load: ${err.message}`);
+    document.getElementById('loadingGrid').style.display='none';
   }
 }
-
-function setSyncState(state, msg) {
-  const bar = document.getElementById('syncBar');
-  const spinner = document.getElementById('syncSpinner');
-  const msgEl = document.getElementById('syncMsg');
-  bar.className = 'sync-bar' + (state === 'error' ? ' error' : state === 'success' ? ' success' : '');
-  spinner.style.display = state === 'loading' ? 'block' : 'none';
-  msgEl.textContent = msg;
+function setSyncState(state,msg){
+  const bar=document.getElementById('syncBar');
+  bar.className='sync-bar'+(state==='error'?' error':state==='success'?' success':'');
+  document.getElementById('syncSpinner').style.display=state==='loading'?'block':'none';
+  document.getElementById('syncMsg').textContent=msg;
 }
-
-function refreshData() {
-  document.getElementById('loadingGrid').style.display = 'grid';
-  document.getElementById('drugGrid').style.display = 'none';
-  document.getElementById('noResults').style.display = 'none';
+function refreshData(){
+  document.getElementById('loadingGrid').style.display='grid';
+  document.getElementById('drugGrid').style.display='none';
   fetchData();
 }
+function updateStats(){
+  document.getElementById('statTotal').textContent=DRUGS.length;
+  document.getElementById('statDerm').textContent=DRUGS.filter(d=>d.category.includes('Dermatology')).length;
+  document.getElementById('statWomens').textContent=DRUGS.filter(d=>d.category==="Women's Health").length;
+  document.getElementById('statMens').textContent=DRUGS.filter(d=>d.category==="Men's Health").length;
+  document.getElementById('statCompound').textContent=DRUGS.filter(d=>['Compounded','HRT Compound'].includes(d.category)).length;
+}
 
 // ============================================================
-// SEARCH & FILTER
+// SEARCH
 // ============================================================
-function doSearch() {
-  if (!DRUGS.length) return;
-  const q   = document.getElementById('searchInput').value.trim();
-  const cat = document.getElementById('filterCat').value;
-  const loc = document.getElementById('filterLoc').value;
-  const pa  = document.getElementById('filterPA').value;
-  const pt  = document.getElementById('filterPrice').value;
-
-  let results = q.length >= 2
-    ? fuseIndex.search(q).map(r => r.item)
-    : [...DRUGS];
-
-  if (cat) results = results.filter(d => d.category === cat);
-  if (loc) results = results.filter(d => d.locations.includes(loc));
-  if (pa)  results = results.filter(d => d.pa === pa);
-  if (pt)  results = results.filter(d => d.priceType === pt);
-
+function doSearch(){
+  if(!DRUGS.length) return;
+  const q=document.getElementById('searchInput').value.trim();
+  const cat=document.getElementById('filterCat').value;
+  const loc=document.getElementById('filterLoc').value;
+  const pa=document.getElementById('filterPA').value;
+  const pt=document.getElementById('filterPrice').value;
+  let results=q.length>=2?fuseIndex.search(q).map(r=>r.item):[...DRUGS];
+  if(cat) results=results.filter(d=>d.category===cat);
+  if(loc) results=results.filter(d=>d.locations.includes(loc));
+  if(pa)  results=results.filter(d=>d.pa===pa);
+  if(pt)  results=results.filter(d=>d.priceType===pt);
   renderGrid(results);
 }
 
-function renderGrid(drugs) {
-  const grid   = document.getElementById('drugGrid');
-  const noRes  = document.getElementById('noResults');
-  document.getElementById('resultCount').textContent = drugs.length;
-
-  if (!drugs.length) {
-    grid.innerHTML = '';
-    noRes.style.display = 'block';
-    noRes.innerHTML = `<div style="font-size:32px;margin-bottom:8px;">🔍</div>
-      <div style="font-weight:600;margin-bottom:4px;">No results found</div>
-      <div style="font-size:13px;">Try a different search term or clear filters</div>`;
-    return;
-  }
-  noRes.style.display = 'none';
-  grid.innerHTML = drugs.map(buildCard).join('');
-}
-
-function updateStats() {
-  document.getElementById('statTotal').textContent    = DRUGS.length;
-  document.getElementById('statDerm').textContent     = DRUGS.filter(d => d.category.includes('Dermatology')).length;
-  document.getElementById('statWomens').textContent   = DRUGS.filter(d => d.category === "Women's Health").length;
-  document.getElementById('statMens').textContent     = DRUGS.filter(d => d.category === "Men's Health").length;
-  document.getElementById('statCompound').textContent = DRUGS.filter(d => ['Compounded','HRT Compound'].includes(d.category)).length;
+function renderGrid(drugs){
+  const grid=document.getElementById('drugGrid');
+  const noRes=document.getElementById('noResults');
+  document.getElementById('resultCount').textContent=drugs.length;
+  if(!drugs.length){ grid.innerHTML=''; noRes.style.display='block'; return; }
+  noRes.style.display='none';
+  grid.innerHTML=drugs.map(buildCard).join('');
 }
 
 // ============================================================
-// CARD BUILDER
+// DRUG CARD
 // ============================================================
-function buildCard(d) {
-  const pricingCells = buildPricingCells(d);
-  const priceHTML = pricingCells.map(c => {
-    const cls = c.val === '$0' ? 'free' : (c.val === 'N/A' || c.val === '') ? 'na' : '';
-    return `<div class="price-cell">
-      <div class="price-label">${esc(c.label)}</div>
-      <div class="price-val ${cls}">${esc(c.val || 'N/A')}</div>
-    </div>`;
+function buildCard(d){
+  const pricingCells=buildPricingCells(d);
+  const priceHTML=pricingCells.map(c=>{
+    const cls=c.val==='$0'||c.val==='0'?'free':(c.val==='N/A'||c.val==='')?'na':'';
+    return `<div class="price-cell"><div class="price-label">${esc(c.label)}</div><div class="price-val ${cls}">${esc(c.val||'N/A')}</div></div>`;
   }).join('');
+  const paLabel=d.pa==='yes'?'PA usually required':d.pa==='sometimes'?'PA: sometimes':'PA: rarely';
+  const paBadgeCls=d.pa==='yes'?'badge-pa-yes':d.pa==='sometimes'?'badge-pa-sometimes':'badge-pa-rarely';
+  const paTextCls=d.pa==='yes'?'pa-yes':d.pa==='sometimes'?'pa-sometimes':'pa-rarely';
+  const typeBadge=d.priceType==='savings'?'<span class="badge badge-savings">💊 Savings program</span>':'<span class="badge badge-mfr">🏷 Mfr coupon</span>';
+  const covBadge=d.coveredOnly?'<span class="badge" style="background:var(--red-light);color:var(--red);">Covered only</span>':'';
+  const locBadges=d.locations.map(l=>`<span class="badge badge-loc">${esc(l)}</span>`).join('');
+  const tagBadges=d.tags.map(t=>`<span class="badge badge-tag">#${esc(t)}</span>`).join('');
+  const priceNote=d.priceType==='savings'
+    ?'<div style="font-size:11px;color:var(--green);margin-top:4px;">✓ Savings program: open to all patients including Medicare, Medicaid, uninsured.</div>'
+    :'<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">⚠ Manufacturer coupon: commercially insured only. Not valid Medicare/Medicaid/TRICARE/VA.</div>';
+  const updNote=d.lastUpdated?`<div style="font-size:11px;color:var(--text-light);margin-top:8px;">Updated: ${esc(d.lastUpdated)}${d.updatedBy?' by '+esc(d.updatedBy):''}</div>`:'';
+  const sid=String(d.id).replace(/'/g,'');
+  const sname=(d.name||'').replace(/'/g,"\\'");
 
-  const paLabel = d.pa === 'yes' ? 'PA usually required'
-    : d.pa === 'sometimes' ? 'PA: sometimes' : 'PA: rarely needed';
-  const paBadgeCls = d.pa === 'yes' ? 'badge-pa-yes'
-    : d.pa === 'sometimes' ? 'badge-pa-sometimes' : 'badge-pa-rarely';
-  const paTextCls = d.pa === 'yes' ? 'pa-yes' : d.pa === 'sometimes' ? 'pa-sometimes' : 'pa-rarely';
-
-  const typeBadge = d.priceType === 'savings'
-    ? `<span class="badge badge-savings">💊 Savings program</span>`
-    : `<span class="badge badge-mfr">🏷 Manufacturer coupon</span>`;
-
-  const covOnlyBadge = d.coveredOnly
-    ? `<span class="badge" style="background:var(--red-light);color:var(--red);">Covered insurance only</span>` : '';
-
-  const locBadges = d.locations.map(l =>
-    `<span class="badge badge-loc">${esc(l === 'NY' ? 'NY (Sunshine)' : 'V-Care '+l)}</span>`).join('');
-
-  const locationNote = d.locations.length > 0 && d.locations.length < 5 && !d.locations.includes('NY')
-    ? `<div style="font-size:11px;color:var(--amber);margin-top:6px;">⚠ Not available at all locations — confirm before routing prescription.</div>` : '';
-
-  const priceNote = d.priceType === 'savings'
-    ? `<div style="font-size:11px;color:var(--green);margin-top:5px;">✓ Savings program: open to all patients including Medicare, Medicaid, and uninsured.</div>`
-    : `<div style="font-size:11px;color:var(--text-muted);margin-top:5px;">⚠ Manufacturer coupon: commercially insured patients only. Not valid for Medicare/Medicaid/TRICARE/VA/FEHBP.</div>`;
-
-  const updatedNote = d.lastUpdated
-    ? `<div style="font-size:11px;color:var(--text-light);margin-top:8px;">Last updated: ${esc(d.lastUpdated)}${d.updatedBy ? ' by ' + esc(d.updatedBy) : ''}</div>` : '';
-
-  const safeName = (d.name || '').replace(/'/g, "\\'");
-  const safeId   = String(d.id).replace(/'/g, '');
-
-  return `<div class="drug-card" id="card-${safeId}">
-    <div class="card-header" onclick="toggleCard('${safeId}')">
-      <div class="drug-name-block">
+  return `<div class="drug-card" id="card-${sid}">
+    <div class="card-header">
+      <div class="card-header-click" onclick="toggleCard('${sid}')">
         <div class="drug-name">${esc(d.name)} <span style="font-size:12px;font-weight:400;color:var(--text-muted);">${esc(d.altName)}</span></div>
-        ${d.qty ? `<div style="font-size:12px;color:var(--text-muted);margin-top:1px;">${esc(d.qty)}</div>` : ''}
+        ${d.qty?`<div style="font-size:11px;color:var(--text-muted);margin-top:1px;">${esc(d.qty)}</div>`:''}
         <div class="header-badges">
           <span class="badge badge-cat">${esc(d.category)}</span>
           ${typeBadge}
           <span class="badge ${paBadgeCls}">${paLabel}</span>
-          ${covOnlyBadge}
-          ${locBadges}
+          ${covBadge}${locBadges}${tagBadges}
         </div>
       </div>
-      <span class="expand-icon" id="icon-${safeId}">▼</span>
+      <span class="expand-icon" id="icon-${sid}" onclick="toggleCard('${sid}')">▼</span>
     </div>
-    <div class="card-body" id="body-${safeId}">
-
+    <div class="card-body" id="body-${sid}">
       <div class="section-label">Pricing</div>
-      <div class="price-grid">${priceHTML}</div>
-      ${priceNote}
-
+      <div class="price-grid">${priceHTML}</div>${priceNote}
       <div class="section-label">Clinical info</div>
       <div class="info-grid">
+        <div class="info-block full"><div class="ib-label">Common use</div><div class="ib-text">${esc(d.use)}</div></div>
+        <div class="info-block full"><div class="ib-label">Common side effects</div><div class="ib-text">${esc(d.sideEffects)}</div></div>
+        <div class="info-block"><div class="ib-label">Prior authorization</div><div class="ib-text"><span class="${paTextCls}">${paLabel}</span><br><span style="font-size:12px;">${esc(d.paNotes)}</span></div></div>
+        <div class="info-block"><div class="ib-label">Covered alternatives</div><div class="ib-text">${esc(d.coveredAlts)}</div></div>
+        <div class="info-block full"><div class="ib-label">Other alternatives</div><div class="ib-text">${esc(d.alternatives)}</div></div>
         <div class="info-block full">
-          <div class="ib-label">Common use</div>
-          <div class="ib-text">${esc(d.use)}</div>
-        </div>
-        <div class="info-block full">
-          <div class="ib-label">Common side effects</div>
-          <div class="ib-text">${esc(d.sideEffects)}</div>
-        </div>
-        <div class="info-block">
-          <div class="ib-label">Prior authorization</div>
-          <div class="ib-text"><span class="${paTextCls}">${paLabel}</span><br>
-          <span style="font-size:12px;">${esc(d.paNotes)}</span></div>
-        </div>
-        <div class="info-block">
-          <div class="ib-label">Covered alternatives / step therapy</div>
-          <div class="ib-text">${esc(d.coveredAlts)}</div>
+          <div class="ib-label">Locations</div>
+          <div class="loc-list">${locBadges||'<span style="font-size:12px;color:var(--text-muted);">Not specified</span>'}</div>
         </div>
         <div class="info-block full">
-          <div class="ib-label">Other alternatives</div>
-          <div class="ib-text">${esc(d.alternatives)}</div>
-        </div>
-        <div class="info-block full">
-          <div class="ib-label">Pharmacy locations</div>
-          <div class="loc-list">${locBadges || '<span style="font-size:12px;color:var(--text-muted);">Not specified</span>'}</div>
-          ${locationNote}
+          <div class="ib-label">Tags</div>
+          <div>${tagBadges||'<span style="font-size:12px;color:var(--text-muted);">No tags</span>'}
+          <button class="btn-secondary" style="font-size:11px;padding:3px 9px;margin-left:8px;" onclick="toggleEdit('${sid}');document.getElementById('ef-field-${sid}').value='Tags';populateCurrentValue('${sid}')">+ Edit tags</button></div>
         </div>
       </div>
-      ${updatedNote}
-
+      ${updNote}
       <div class="section-label">Propose an update</div>
-      <button class="btn-secondary" style="font-size:12px;" onclick="toggleEdit('${safeId}')">✏ Suggest a change to this entry</button>
-      <div class="edit-panel" id="edit-${safeId}">
+      <button class="btn-secondary" style="font-size:12px;" onclick="toggleEdit('${sid}')">✏ Suggest a change</button>
+      <div class="edit-panel" id="edit-${sid}">
         <div class="edit-panel-title">Propose update: ${esc(d.name)}</div>
         <div class="edit-form">
           <div>
             <label>Field to update</label>
-            <select id="ef-field-${safeId}" onchange="populateCurrentValue('${safeId}')">
+            <select id="ef-field-${sid}" onchange="populateCurrentValue('${sid}')">
               <option value="Covered by Insurance">Covered price</option>
               <option value="Not Covered Price">Not covered price</option>
               <option value="Cash Price">Cash price</option>
@@ -583,353 +776,489 @@ function buildCard(d) {
               <option value="Other Alternatives">Other alternatives</option>
               <option value="PA Likelihood">PA likelihood</option>
               <option value="Locations">Locations</option>
+              <option value="Tags">Tags (comma separated)</option>
             </select>
           </div>
           <div>
             <label>Your name / initials <span style="color:var(--red);">*</span></label>
-            <input type="text" id="ef-staff-${safeId}"
-              placeholder="Required — e.g. JD – Chestnut Hill"
-              oninput="checkEditReady('${safeId}')" />
+            <input type="text" id="ef-staff-${sid}" placeholder="Required — e.g. JD" oninput="checkEditReady('${sid}')" />
           </div>
           <div class="full">
-            <label>Current value <span style="font-size:11px;color:var(--text-muted);font-weight:400;">(edit or add to this)</span></label>
-            <div id="ef-current-${safeId}" style="font-size:11px;color:var(--text-muted);background:var(--gray);border-radius:var(--radius);padding:6px 10px;margin-bottom:6px;min-height:28px;line-height:1.5;white-space:pre-wrap;"></div>
+            <label>Current value</label>
+            <div class="current-val-box" id="ef-current-${sid}"></div>
             <label>New value <span style="color:var(--red);">*</span></label>
-            <textarea id="ef-note-${safeId}"
-              placeholder="Current value will load above when you select a field — edit or add to it here..."
-              oninput="checkEditReady('${safeId}')"
-              style="min-height:90px;"></textarea>
+            <textarea id="ef-note-${sid}" oninput="checkEditReady('${sid}')" style="min-height:70px;"></textarea>
           </div>
         </div>
         <div class="edit-actions">
-          <span class="edit-status" id="ef-status-${safeId}"></span>
-          <button class="btn-secondary" onclick="toggleEdit('${safeId}')">Cancel</button>
-          <button class="btn-primary" id="ef-btn-${safeId}" onclick="submitEdit('${safeId}','${safeName}')" disabled style="opacity:0.5;">Submit update</button>
+          <span class="edit-status" id="ef-status-${sid}"></span>
+          <button class="btn-secondary" onclick="toggleEdit('${sid}')">Cancel</button>
+          <button class="btn-primary" id="ef-btn-${sid}" onclick="submitEdit('${sid}','${sname}')" disabled style="opacity:.5;">Submit update</button>
         </div>
       </div>
-
     </div>
   </div>`;
 }
 
-function toggleCard(id) {
-  document.getElementById('body-' + id).classList.toggle('open');
-  document.getElementById('icon-' + id).classList.toggle('open');
+function toggleCard(id){
+  document.getElementById('body-'+id).classList.toggle('open');
+  document.getElementById('icon-'+id).classList.toggle('open');
 }
-
-function toggleEdit(id) {
-  const panel = document.getElementById('edit-' + id);
-  const wasOpen = panel.classList.contains('open');
+function toggleEdit(id){
+  const panel=document.getElementById('edit-'+id);
+  const wasOpen=panel.classList.contains('open');
   panel.classList.toggle('open');
-  // Auto-populate the first field's current value when opening
-  if (!wasOpen) {
-    populateCurrentValue(id);
-  } else {
-    // Reset form when closing
-    const noteEl  = document.getElementById('ef-note-'    + id);
-    const staffEl = document.getElementById('ef-staff-'   + id);
-    const statusEl= document.getElementById('ef-status-'  + id);
-    const btnEl   = document.getElementById('ef-btn-'     + id);
-    const curEl   = document.getElementById('ef-current-' + id);
-    if (noteEl)   noteEl.value = '';
-    if (staffEl)  staffEl.value = '';
-    if (statusEl) { statusEl.textContent = ''; statusEl.style.color = ''; }
-    if (btnEl)    { btnEl.disabled = true; btnEl.style.opacity = '0.5'; btnEl.textContent = 'Submit update'; }
-    if (curEl)    curEl.textContent = '';
+  if(!wasOpen) populateCurrentValue(id);
+  else{
+    ['note','staff'].forEach(f=>{ const el=document.getElementById('ef-'+f+'-'+id); if(el)el.value=''; });
+    const s=document.getElementById('ef-status-'+id); if(s){s.textContent='';s.style.color='';}
+    const b=document.getElementById('ef-btn-'+id); if(b){b.disabled=true;b.style.opacity='.5';b.textContent='Submit update';}
+    const c=document.getElementById('ef-current-'+id); if(c)c.textContent='';
   }
 }
-
-function esc(s) {
-  if (!s) return '';
-  return String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ============================================================
-// SUBMIT EDIT — writes directly to Google Sheet via Apps Script
-// ============================================================
+function esc(s){ if(!s)return''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ============================================================
 // EDIT FORM HELPERS
 // ============================================================
-
-// Map select option values to the drug object field names
-const FIELD_MAP = {
-  'Covered by Insurance': (d) => d.covPrice  !== undefined && d.covPrice  !== null ? String(d.covPrice)  : '',
-  'Not Covered Price':    (d) => d.notCovPrice !== undefined && d.notCovPrice !== null ? String(d.notCovPrice) : '',
-  'Cash Price':           (d) => d.cashPrice  !== undefined && d.cashPrice  !== null ? String(d.cashPrice)  : '',
-  'All Pricing':          (d) => d.allPricing !== undefined && d.allPricing !== null ? String(d.allPricing) : '',
-  'PA Notes':             (d) => d.paNotes    !== undefined && d.paNotes    !== null ? String(d.paNotes)    : '',
-  'Covered Alternatives': (d) => d.coveredAlts !== undefined && d.coveredAlts !== null ? String(d.coveredAlts) : '',
-  'Common Use':           (d) => d.use        !== undefined && d.use        !== null ? String(d.use)        : '',
-  'Side Effects':         (d) => d.sideEffects !== undefined && d.sideEffects !== null ? String(d.sideEffects) : '',
-  'Other Alternatives':   (d) => d.alternatives !== undefined && d.alternatives !== null ? String(d.alternatives) : '',
-  'PA Likelihood':        (d) => d.pa         !== undefined && d.pa         !== null ? String(d.pa)         : '',
-  'Locations':            (d) => Array.isArray(d.locations) ? d.locations.join(', ') : ''
+const FIELD_MAP={
+  'Covered by Insurance':(d)=>d.covPrice!==undefined&&d.covPrice!==null?String(d.covPrice):'',
+  'Not Covered Price':   (d)=>d.notCovPrice!==undefined&&d.notCovPrice!==null?String(d.notCovPrice):'',
+  'Cash Price':          (d)=>d.cashPrice!==undefined&&d.cashPrice!==null?String(d.cashPrice):'',
+  'All Pricing':         (d)=>d.allPricing||'',
+  'PA Notes':            (d)=>d.paNotes||'',
+  'Covered Alternatives':(d)=>d.coveredAlts||'',
+  'Common Use':          (d)=>d.use||'',
+  'Side Effects':        (d)=>d.sideEffects||'',
+  'Other Alternatives':  (d)=>d.alternatives||'',
+  'PA Likelihood':       (d)=>d.pa||'',
+  'Locations':           (d)=>Array.isArray(d.locations)?d.locations.join(', '):'',
+  'Tags':                (d)=>Array.isArray(d.tags)?d.tags.join(', '):''
 };
 
-// When a field is selected, show current value and pre-populate the textarea
-function populateCurrentValue(id) {
-  const selectEl  = document.getElementById('ef-field-'   + id);
-  const currentEl = document.getElementById('ef-current-' + id);
-  const noteEl    = document.getElementById('ef-note-'    + id);
-  if (!selectEl || !currentEl || !noteEl) return;
-
-  const field = selectEl.value;
-  // Find the drug by card id
-  const drug = DRUGS.find(d => String(d.id) === String(id));
-  if (!drug) { currentEl.textContent = ''; noteEl.value = ''; return; }
-
-  const mapper = FIELD_MAP[field];
-  let currentVal = '';
-  if (typeof mapper === 'function') {
-    currentVal = mapper(drug);
-  }
-
-  // Show the value — explicitly handle '0', '$0', and empty string differently
-  const displayVal = (currentVal !== '' && currentVal !== null && currentVal !== undefined)
-    ? currentVal : '(no current value)';
-  currentEl.textContent = displayVal;
-
-  // Pre-populate textarea — only pre-fill if there's actually a value
-  // so staff don't accidentally submit a blank or zero unchanged
-  noteEl.value = currentVal !== '' ? currentVal : '';
+function populateCurrentValue(id){
+  const sel=document.getElementById('ef-field-'+id);
+  const cur=document.getElementById('ef-current-'+id);
+  const note=document.getElementById('ef-note-'+id);
+  if(!sel||!cur||!note) return;
+  const field=sel.value;
+  const drug=DRUGS.find(d=>String(d.id)===String(id));
+  if(!drug){cur.textContent='';note.value='';return;}
+  const mapper=FIELD_MAP[field];
+  let val=mapper?mapper(drug):'';
+  cur.textContent=val!==''&&val!==null?val:'(no current value)';
+  note.value=val!==''?val:'';
   checkEditReady(id);
 }
-
-// Enable submit only when name AND new value are both filled
-function checkEditReady(id) {
-  const staff = (document.getElementById('ef-staff-' + id)?.value || '').trim();
-  const note  = (document.getElementById('ef-note-'  + id)?.value || '').trim();
-  const btn   = document.getElementById('ef-btn-' + id);
-  if (!btn) return;
-  const ready = staff.length > 0 && note.length > 0;
-  btn.disabled = !ready;
-  btn.style.opacity = ready ? '1' : '0.5';
-  btn.style.cursor  = ready ? 'pointer' : 'not-allowed';
+function checkEditReady(id){
+  const staff=(document.getElementById('ef-staff-'+id)?.value||'').trim();
+  const note=(document.getElementById('ef-note-'+id)?.value||'').trim();
+  const btn=document.getElementById('ef-btn-'+id);
+  if(!btn)return;
+  const ok=staff.length>0&&note.length>0;
+  btn.disabled=!ok; btn.style.opacity=ok?'1':'.5'; btn.style.cursor=ok?'pointer':'not-allowed';
 }
 
-async function submitEdit(drugId, drugName) {
-  const field  = document.getElementById('ef-field-'  + drugId).value;
-  const staff  = document.getElementById('ef-staff-'  + drugId).value.trim();
-  const note   = document.getElementById('ef-note-'   + drugId).value.trim();
-  const btn    = document.getElementById('ef-btn-'    + drugId);
-  const status = document.getElementById('ef-status-' + drugId);
-
-  if (!staff) { showToast('Please enter your name or initials.', 'error'); return; }
-  if (!note)  { showToast('Please enter the new value.', 'error'); return; }
-
-  btn.disabled = true;
-  btn.style.opacity = '0.6';
-  btn.textContent = 'Saving...';
-  status.textContent = 'Sending to Google Sheets...';
-  status.style.color = 'var(--text-muted)';
-
-  // Single update call — the new Apps Script logs before/after and returns both
-  const updatePayload = {
-    key:      SECRET,
-    action:   'update',
-    id:       drugId,
-    drugName: drugName,
-    field:    field,
-    value:    note,
-    staff:    staff
-  };
-
-  try {
-    const updateRes = await postToScript(updatePayload);
-
-    if (updateRes.status === 'ok') {
-      const before    = updateRes.before    || '(not recorded)';
-      const after     = updateRes.after     || note;
-      const timestamp = updateRes.timestamp || new Date().toLocaleString();
-
-      status.innerHTML = `<span style="color:var(--green);">✓ Saved by ${esc(staff)} at ${timestamp}</span>`;
-      showToast('✓ Change saved to Google Sheets!', 'success');
-
-      // Update the in-memory drug object immediately so the card re-renders
-      // with the new value right away without waiting for a full sheet re-fetch
-      const drugInMemory = DRUGS.find(d => String(d.id) === String(drugId));
-      if (drugInMemory) {
-        const memFieldMap = {
-          'Covered by Insurance': 'covPrice',
-          'Not Covered Price':    'notCovPrice',
-          'Cash Price':           'cashPrice',
-          'All Pricing':          'allPricing',
-          'PA Notes':             'paNotes',
-          'Covered Alternatives': 'coveredAlts',
-          'Common Use':           'use',
-          'Side Effects':         'sideEffects',
-          'Other Alternatives':   'alternatives',
-          'PA Likelihood':        'pa'
-        };
-        const memField = memFieldMap[field];
-        if (memField) {
-          drugInMemory[memField] = note;
-        } else if (field === 'Locations') {
-          drugInMemory.locations = note.split(',').map(s => s.trim()).filter(Boolean);
+// ============================================================
+// SUBMIT EDIT
+// ============================================================
+async function submitEdit(drugId,drugName){
+  const field=document.getElementById('ef-field-'+drugId).value;
+  const staff=document.getElementById('ef-staff-'+drugId).value.trim();
+  const note=document.getElementById('ef-note-'+drugId).value.trim();
+  const btn=document.getElementById('ef-btn-'+drugId);
+  const status=document.getElementById('ef-status-'+drugId);
+  if(!staff||!note) return;
+  btn.disabled=true; btn.style.opacity='.6'; btn.textContent='Saving...';
+  status.textContent='Sending to Google Sheets...'; status.style.color='var(--text-muted)';
+  try{
+    const res=await postToScript({key:SECRET,action:'update',id:drugId,drugName,field,value:note,staff});
+    if(res.status==='ok'){
+      const ts=res.timestamp||new Date().toLocaleString();
+      status.innerHTML=`<span style="color:var(--green);">✓ Saved by ${esc(staff)} at ${ts}</span>`;
+      showToast('✓ Saved to Google Sheets!','success');
+      // Update in-memory
+      const drug=DRUGS.find(d=>String(d.id)===String(drugId));
+      if(drug){
+        const mem={'Covered by Insurance':'covPrice','Not Covered Price':'notCovPrice','Cash Price':'cashPrice','All Pricing':'allPricing','PA Notes':'paNotes','Covered Alternatives':'coveredAlts','Common Use':'use','Side Effects':'sideEffects','Other Alternatives':'alternatives','PA Likelihood':'pa','Tags':'_tags_raw'};
+        const mf=mem[field];
+        if(mf==='_tags_raw'){ drug.tags=parseTags(note); }
+        else if(mf){ drug[mf]=note; }
+        else if(field==='Locations'){ drug.locations=parseLocations(note); }
+        const pricing=['Covered by Insurance','Not Covered Price','Cash Price'];
+        if(pricing.includes(field)){
+          const parts=[];
+          if(drug.covPrice!=='')    parts.push('Covered: '+drug.covPrice);
+          if(drug.notCovPrice!=='') parts.push('Not Covered: '+drug.notCovPrice);
+          if(drug.cashPrice!=='')   parts.push('Cash: '+drug.cashPrice);
+          drug.allPricing=parts.join(' | ');
         }
-
-        // If a pricing field changed, rebuild allPricing so the price cells re-render
-        const pricingFields = ['Covered by Insurance', 'Not Covered Price', 'Cash Price'];
-        if (pricingFields.includes(field)) {
-          const parts = [];
-          if (drugInMemory.covPrice    !== '') parts.push(`Covered: ${drugInMemory.covPrice}`);
-          if (drugInMemory.notCovPrice !== '') parts.push(`Not Covered: ${drugInMemory.notCovPrice}`);
-          if (drugInMemory.cashPrice   !== '') parts.push(`Cash: ${drugInMemory.cashPrice}`);
-          drugInMemory.allPricing = parts.join(' | ');
-        }
-
-        drugInMemory.lastUpdated = timestamp;
-        drugInMemory.updatedBy   = staff;
+        drug.lastUpdated=ts; drug.updatedBy=staff;
       }
-
-      // Fire Teams notification with before/after summary
-      if (WEBHOOK) {
-        fireTeamsNotification({ drugId, drugName, field, before, after, staff, timestamp });
-      }
-
-      // Re-render cards immediately from updated in-memory data
+      if(WEBHOOK) fireTeamsNotification({drugId,drugName,field,before:res.before||'',after:res.after||note,staff,timestamp:ts});
       doSearch();
-      // Wait 5 seconds then re-fetch from sheet to confirm sync
-      // (Google Sheets needs time to commit the write before it's readable)
-      setTimeout(() => { fetchData(); }, 5000);
+      setTimeout(()=>{ fetchData(); },5000);
+    } else { throw new Error(res.message||'Error'); }
+  } catch(err){
+    status.textContent='⚠ '+err.message; status.style.color='var(--red)';
+    btn.disabled=false; btn.style.opacity='1'; btn.textContent='Try again';
+    showToast('Could not save','error');
+  }
+}
+async function postToScript(payload){
+  const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(payload)});
+  return res.json();
+}
+function fireTeamsNotification(e){
+  const trunc=(s,n)=>s&&s.length>n?s.slice(0,n)+'...':s||'—';
+  fetch(WEBHOOK,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    type:'message',attachments:[{contentType:'application/vnd.microsoft.card.adaptive',content:{
+      '$schema':'http://adaptivecards.io/schemas/adaptive-card.json',type:'AdaptiveCard',version:'1.4',
+      body:[
+        {type:'TextBlock',text:'📋 Drug Reference Updated',weight:'Bolder',size:'Medium',color:'Accent'},
+        {type:'TextBlock',text:`**${e.drugName}** — ${e.field}`,wrap:true,spacing:'Small'},
+        {type:'FactSet',spacing:'Medium',facts:[
+          {title:'Drug',value:e.drugName},{title:'Field',value:e.field},
+          {title:'⬅ Before',value:trunc(e.before,400)},{title:'➡ After',value:trunc(e.after,400)},
+          {title:'Updated by',value:e.staff},{title:'Date/Time',value:e.timestamp}
+        ]}
+      ]
+    }}]
+  })}).catch(()=>{});
+}
 
-    } else {
-      throw new Error(updateRes.message || 'Script returned an error');
-    }
-  } catch(err) {
-    status.textContent = '⚠ Could not save: ' + err.message;
-    status.style.color = 'var(--red)';
-    btn.disabled = false;
-    btn.style.opacity = '1';
-    btn.textContent = 'Try again';
-    showToast('Could not save — check your connection.', 'error');
+// ============================================================
+// EXPORT EXCEL (drug reference)
+// ============================================================
+function exportExcel(){
+  if(!DRUGS.length){showToast('No data loaded','error');return;}
+  const wb=XLSX.utils.book_new();
+  const rows=DRUGS.map(d=>({'id':d.id,'Drug Name':d.name,'Alt Name / Generic':d.altName,'Category':d.category,'Qty/Strength':d.qty,'Price Type':d.priceType==='savings'?'Savings Program':'Manufacturer Coupon','Covered by Insurance':d.covPrice,'Not Covered Price':d.notCovPrice,'Cash Price':d.cashPrice,'All Pricing':d.allPricing,'Covered Insurance Only':d.coveredOnly?'YES':'No','Locations':d.locations.join(', '),'Tags':d.tags.join(', '),'Common Use':d.use,'Side Effects':d.sideEffects,'PA Likelihood':d.pa,'PA Notes':d.paNotes,'Covered Alternatives':d.coveredAlts,'Other Alternatives':d.alternatives,'Last Updated':d.lastUpdated,'Updated By':d.updatedBy}));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb,ws,'All Drugs');
+  XLSX.writeFile(wb,`VCare_Drug_Reference_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast('Excel downloaded!','success');
+}
+
+// ============================================================
+// FLIER BUILDER
+// ============================================================
+let flierList=[];
+
+function renderFlierDrugs(){
+  const cat=document.getElementById('flierFilterCat').value;
+  const loc=document.getElementById('flierFilterLoc').value;
+  const q=document.getElementById('flierSearch').value.trim();
+  let drugs=[...DRUGS];
+  if(cat) drugs=drugs.filter(d=>d.category===cat);
+  if(loc) drugs=drugs.filter(d=>d.locations.includes(loc));
+  if(q.length>=2){
+    const fi=new Fuse(drugs,{keys:['name','altName','use'],threshold:.35});
+    drugs=fi.search(q).map(r=>r.item);
+  }
+  const grid=document.getElementById('flierDrugGrid');
+  if(!drugs.length){ grid.innerHTML='<div style="text-align:center;padding:24px;color:var(--text-muted);">No drugs match your filters.</div>'; return; }
+  grid.innerHTML=drugs.map(d=>{
+    const inList=flierList.some(f=>String(f.id)===String(d.id));
+    const prices=buildPricingCells(d).map(c=>`${c.label}: ${c.val}`).join(' · ');
+    return `<div class="flier-drug-row" id="frow-${d.id}">
+      <div class="drug-info">
+        <div class="name">${esc(d.name)} <span style="font-size:11px;color:var(--text-muted);">${esc(d.altName)}</span></div>
+        <div class="sub">${esc(d.category)}${d.qty?' · '+esc(d.qty):''} · ${esc(prices)}</div>
+      </div>
+      <button class="add-flier-btn${inList?' added':''}" id="fbtn-${d.id}" onclick="toggleFlierItem(${d.id})">${inList?'✓ Added':'➕ Add'}</button>
+    </div>`;
+  }).join('');
+}
+
+function toggleFlierItem(drugId){
+  const drug=DRUGS.find(d=>String(d.id)===String(drugId));
+  if(!drug) return;
+  const idx=flierList.findIndex(f=>String(f.id)===String(drugId));
+  if(idx>-1){
+    // Already added — remove it
+    flierList.splice(idx,1);
+  } else {
+    // Add it
+    flierList.push({
+      id:drug.id, name:drug.name, altName:drug.altName,
+      category:drug.category, qty:drug.qty, priceType:drug.priceType,
+      covPrice:drug.covPrice, notCovPrice:drug.notCovPrice, cashPrice:drug.cashPrice,
+      overrideCov:drug.covPrice, overrideNotCov:drug.notCovPrice, overrideCash:drug.cashPrice,
+      pushToSheet:false
+    });
+  }
+  // Update just this row's button — do NOT re-render the whole list
+  const inList=flierList.some(f=>String(f.id)===String(drugId));
+  const btn=document.getElementById('fbtn-'+drugId);
+  if(btn){ btn.textContent=inList?'✓ Added':'➕ Add'; btn.classList.toggle('added',inList); }
+  renderFlierSidebar();
+}
+
+function renderFlierSidebar(){
+  const list=document.getElementById('flierList');
+  const empty=document.getElementById('flierEmpty');
+  document.getElementById('flierCount').textContent=flierList.length;
+  if(!flierList.length){ empty.style.display='block'; list.innerHTML=''; list.appendChild(empty); return; }
+  empty.style.display='none';
+  list.innerHTML=flierList.map((f,i)=>`
+    <div class="flier-item">
+      <div style="flex:1;">
+        <div class="flier-item-name">${esc(f.name)}</div>
+        <div class="flier-item-price" style="font-size:11px;color:var(--text-muted);">${esc(f.category)} · ${esc(f.qty)}</div>
+        <div class="flier-price-override">
+          ${f.covPrice!==''?`<div><label style="font-size:10px;display:block;">Covered</label><input type="text" value="${esc(f.overrideCov)}" onchange="updateFlierPrice(${i},'cov',this.value)" /></div>`:''}
+          ${f.notCovPrice!==''?`<div><label style="font-size:10px;display:block;">Not Cov</label><input type="text" value="${esc(f.overrideNotCov)}" onchange="updateFlierPrice(${i},'notcov',this.value)" /></div>`:''}
+          ${f.cashPrice!==''?`<div><label style="font-size:10px;display:block;">Cash</label><input type="text" value="${esc(f.overrideCash)}" onchange="updateFlierPrice(${i},'cash',this.value)" /></div>`:''}
+        </div>
+        <div class="flier-push-row">
+          <input type="checkbox" id="push-${i}" ${f.pushToSheet?'checked':''} onchange="flierList[${i}].pushToSheet=this.checked" />
+          <label for="push-${i}">Also update master pricing in Google Sheet</label>
+        </div>
+        ${f.pushToSheet?`<div style="font-size:10px;color:var(--amber);margin-top:3px;">⚠ Will update sheet pricing for all locations — requires initials above.</div>`:''}
+      </div>
+      <button class="remove-flier-btn" onclick="removeFlierItem(${i})" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+function updateFlierPrice(idx,type,val){
+  if(type==='cov')    flierList[idx].overrideCov=val;
+  if(type==='notcov') flierList[idx].overrideNotCov=val;
+  if(type==='cash')   flierList[idx].overrideCash=val;
+}
+function removeFlierItem(idx){
+  const removed=flierList[idx];
+  flierList.splice(idx,1);
+  // Reset the button in the drug pick list if visible
+  if(removed){
+    const btn=document.getElementById('fbtn-'+removed.id);
+    if(btn){ btn.textContent='➕ Add'; btn.classList.remove('added'); }
+  }
+  renderFlierSidebar();
+}
+function clearFlierList(){
+  if(!flierList.length) return;
+  if(confirm('Clear all items from flier list?')){
+    flierList.forEach(f=>{ const btn=document.getElementById('fbtn-'+f.id); if(btn){ btn.textContent='➕ Add'; btn.classList.remove('added'); } });
+    flierList=[];
+    renderFlierSidebar();
   }
 }
 
-async function postToScript(payload) {
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify(payload)
-  });
-  return res.json();
+async function pushFlierChanges(){
+  const staff=document.getElementById('flierStaff').value.trim();
+  const toUpdate=flierList.filter(f=>f.pushToSheet);
+  if(!toUpdate.length){ showToast('No items marked to push to sheet.','error'); return; }
+  if(!staff){ showToast('Enter your name/initials at the top first.','error'); return; }
+  showToast(`Pushing ${toUpdate.length} price change(s) to Google Sheets...`);
+  let success=0;
+  for(const f of toUpdate){
+    try{
+      if(f.covPrice!==''&&f.overrideCov!==f.covPrice)
+        await postToScript({key:SECRET,action:'update',id:f.id,drugName:f.name,field:'Covered by Insurance',value:f.overrideCov,staff});
+      if(f.notCovPrice!==''&&f.overrideNotCov!==f.notCovPrice)
+        await postToScript({key:SECRET,action:'update',id:f.id,drugName:f.name,field:'Not Covered Price',value:f.overrideNotCov,staff});
+      if(f.cashPrice!==''&&f.overrideCash!==f.cashPrice)
+        await postToScript({key:SECRET,action:'update',id:f.id,drugName:f.name,field:'Cash Price',value:f.overrideCash,staff});
+      success++;
+    } catch(e){ console.error(e); }
+  }
+  showToast(`✓ ${success} drug(s) updated in Google Sheets`,'success');
+  setTimeout(()=>fetchData(),4000);
 }
 
-function fireTeamsNotification(edit) {
-  const truncate = (s, n) => s && s.length > n ? s.slice(0, n) + '...' : (s || '—');
-  const before    = truncate(edit.before, 500);
-  const after     = truncate(edit.after,  500);
+function exportFlierExcel(){
+  if(!flierList.length){showToast('No drugs in flier list','error');return;}
+  const wb=XLSX.utils.book_new();
+  const rows=flierList.map(f=>({'Drug Name':f.name,'Alt Name':f.altName,'Category':f.category,'Qty/Strength':f.qty,'Covered Price':f.overrideCov||f.covPrice,'Not Covered Price':f.overrideNotCov||f.notCovPrice,'Cash Price':f.overrideCash||f.cashPrice,'Price Type':f.priceType==='savings'?'Savings Program':'Mfr Coupon'}));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[22,20,18,15,14,16,12,18].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,ws,'Flier');
+  XLSX.writeFile(wb,`VCare_Flier_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast('Flier Excel downloaded!','success');
+}
 
-  // Power Automate expects an Adaptive Card payload
-  const payload = {
-    type: "message",
-    attachments: [
-      {
-        contentType: "application/vnd.microsoft.card.adaptive",
-        content: {
-          "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-          type: "AdaptiveCard",
-          version: "1.4",
-          body: [
-            {
-              type: "TextBlock",
-              text: "📋 Drug Reference Updated",
-              weight: "Bolder",
-              size: "Medium",
-              color: "Accent"
-            },
-            {
-              type: "TextBlock",
-              text: `**${edit.drugName}** — ${edit.field}`,
-              wrap: true,
-              spacing: "Small"
-            },
-            {
-              type: "FactSet",
-              spacing: "Medium",
-              facts: [
-                { title: "Drug",        value: edit.drugName },
-                { title: "Field",       value: edit.field },
-                { title: "⬅ Before",   value: before },
-                { title: "➡ After",    value: after },
-                { title: "Updated by",  value: edit.staff },
-                { title: "Date / Time", value: edit.timestamp }
-              ]
-            }
-          ]
-        }
-      }
-    ]
-  };
-
-  fetch(WEBHOOK, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  }).then(res => {
-    if (!res.ok) {
-      // Fallback: try the simpler legacy format if Adaptive Card is rejected
-      const fallback = {
-        text: `📋 **Drug Reference Updated**\n\n**Drug:** ${edit.drugName}\n**Field:** ${edit.field}\n**Before:** ${before}\n**After:** ${after}\n**Updated by:** ${edit.staff}\n**Time:** ${edit.timestamp}`
-      };
-      return fetch(WEBHOOK, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(fallback)
-      });
-    }
-  }).catch(() => {
-    // Silent fail — notification is best-effort, doesn't block the save
-  });
+function exportFlierPDF(){
+  if(!flierList.length){showToast('No drugs in flier list','error');return;}
+  const win=window.open('','_blank');
+  const rows=flierList.map(f=>`<tr><td>${f.name}${f.altName?' <span style="font-size:11px;color:#666;">('+f.altName+')</span>':''}</td><td>${f.qty}</td><td>${f.overrideCov||f.covPrice||'—'}</td><td>${f.overrideNotCov||f.notCovPrice||'—'}</td><td>${f.overrideCash||f.cashPrice||'—'}</td><td style="font-size:10px;color:#888;">${f.priceType==='savings'?'Savings':'Mfr Coupon'}</td></tr>`).join('');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>V-Care Flier</title>
+  <style>body{font-family:'Segoe UI',sans-serif;font-size:13px;margin:30px;}h1{color:#7B2D3E;font-size:18px;margin-bottom:4px;}p{color:#888;font-size:11px;margin-bottom:16px;}table{width:100%;border-collapse:collapse;}th{background:#7B2D3E;color:white;padding:8px 10px;text-align:left;font-size:11px;}td{padding:7px 10px;border-bottom:1px solid #eee;vertical-align:top;}tr:nth-child(even){background:#fafafa;}@media print{body{margin:10px}}</style>
+  </head><body>
+  <h1>V-Care / Sunshine Pharmacy — Pricing Flier</h1>
+  <p>Generated: ${new Date().toLocaleString()} · ${flierList.length} items</p>
+  <table><thead><tr><th>Drug Name</th><th>Qty/Strength</th><th>Covered</th><th>Not Covered</th><th>Cash</th><th>Type</th></tr></thead>
+  <tbody>${rows}</tbody></table>
+  <p style="margin-top:20px;font-size:10px;color:#aaa;">Prices are estimated out-of-pocket costs. Final pricing confirmed with patient before fulfillment.</p>
+  <script>window.onload=()=>window.print();<\/script></body></html>`);
+  win.document.close();
 }
 
 // ============================================================
-// EXPORT EXCEL — snapshot of current loaded data
+// FLIER LIBRARY
 // ============================================================
-function exportExcel() {
-  if (!DRUGS.length) { showToast('No data loaded yet.', 'error'); return; }
-  const wb = XLSX.utils.book_new();
-  const rows = DRUGS.map(d => ({
-    'id': d.id,
-    'Drug Name': d.name,
-    'Alt Name / Generic': d.altName,
-    'Category': d.category,
-    'Qty/Strength': d.qty,
-    'Price Type': d.priceType === 'savings' ? 'Savings Program (all patients)' : 'Manufacturer Coupon (commercially insured)',
-    'Covered by Insurance': d.covPrice,
-    'Not Covered Price': d.notCovPrice,
-    'Cash Price': d.cashPrice,
-    'All Pricing': d.allPricing,
-    'Covered Insurance Only': d.coveredOnly ? 'YES' : 'No',
-    'Locations': d.locations.join(', '),
-    'Common Use': d.use,
-    'Side Effects': d.sideEffects,
-    'PA Likelihood': d.pa,
-    'PA Notes': d.paNotes,
-    'Covered Alternatives': d.coveredAlts,
-    'Other Alternatives': d.alternatives,
-    'Last Updated': d.lastUpdated,
-    'Updated By': d.updatedBy
-  }));
-  const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [6,22,20,18,15,28,15,15,12,40,12,18,40,40,12,50,40,40,18,15].map(w => ({wch:w}));
-  XLSX.utils.book_append_sheet(wb, ws, 'All Drugs');
-  XLSX.writeFile(wb, `VCare_Drug_Reference_${new Date().toISOString().slice(0,10)}.xlsx`);
-  showToast('Excel snapshot downloaded!', 'success');
+let LIBRARY=[];
+let uploadFile=null;
+let uploadTags=[];
+const ALL_FLIER_TAGS = [
+  'dermatology', 'compounding', "women's health", "men's health",
+  'hrt', 'seasonal update', 'misc'
+];
+
+function handleFileSelect(evt){ const f=evt.target.files[0]; if(f) openUploadForm(f); }
+function handleFileDrop(evt){
+  evt.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag');
+  const f=evt.dataTransfer.files[0];
+  if(f) openUploadForm(f);
+}
+function openUploadForm(file){
+  uploadFile=file;
+  uploadTags=[];
+  document.getElementById('uploadFileName').textContent=file.name;
+  document.getElementById('uploadForm').classList.add('open');
+  document.getElementById('selectedUploadTags').innerHTML='';
+  document.getElementById('uploadTagInput').value='';
+  // Populate replace dropdown from library for same store
+  populateReplaceDropdown();
+  document.getElementById('uploadStore').onchange=populateReplaceDropdown;
+}
+function cancelUpload(){
+  uploadFile=null; uploadTags=[];
+  document.getElementById('uploadForm').classList.remove('open');
+  document.getElementById('fileInput').value='';
+}
+function populateReplaceDropdown(){
+  const store=document.getElementById('uploadStore').value;
+  const sel=document.getElementById('replaceTarget');
+  const section=document.getElementById('replaceSection');
+  const matches=LIBRARY.filter(f=>!store||f.store===store);
+  sel.innerHTML='<option value="">Add as new entry</option>'+matches.map(f=>`<option value="${f.rowId}">${f.name} (${f.uploadDate})</option>`).join('');
+  section.style.display=matches.length?'block':'none';
+}
+
+function onTagInput(){
+  const val=document.getElementById('uploadTagInput').value.toLowerCase();
+  const box=document.getElementById('tagSuggestions');
+  if(val.length<1){ box.classList.remove('open'); return; }
+  const matches=ALL_FLIER_TAGS.filter(t=>t.includes(val)&&!uploadTags.includes(t));
+  if(!matches.length){ box.classList.remove('open'); return; }
+  box.innerHTML=matches.slice(0,8).map(t=>`<div class="tag-suggestion-item" onclick="addUploadTag('${t}')">#${t}</div>`).join('');
+  box.classList.add('open');
+}
+function onTagKeydown(e){
+  if(e.key==='Enter'||e.key===','){ e.preventDefault(); const v=document.getElementById('uploadTagInput').value.replace(/,/g,'').trim().toLowerCase(); if(v)addUploadTag(v); }
+}
+function addUploadTag(tag){
+  if(uploadTags.includes(tag)) return;
+  uploadTags.push(tag);
+  document.getElementById('uploadTagInput').value='';
+  document.getElementById('tagSuggestions').classList.remove('open');
+  renderSelectedTags();
+}
+function removeUploadTag(tag){ uploadTags=uploadTags.filter(t=>t!==tag); renderSelectedTags(); }
+function renderSelectedTags(){
+  document.getElementById('selectedUploadTags').innerHTML=uploadTags.map(t=>`<span class="sel-tag">#${t}<button onclick="removeUploadTag('${t}')">×</button></span>`).join('');
+}
+
+async function submitUpload(){
+  const store=document.getElementById('uploadStore').value;
+  const initials=document.getElementById('uploadInitials').value.trim();
+  const category=document.getElementById('uploadCategory').value;
+  const uploadType=document.getElementById('uploadType').value;
+  const notes=document.getElementById('uploadNotes').value.trim();
+  const replaceId=document.getElementById('replaceTarget').value;
+  if(!store||!initials||!category||!uploadFile){ showToast('Please fill in all required fields','error'); return; }
+  const btn=document.getElementById('uploadSubmitBtn');
+  btn.disabled=true; btn.textContent='Uploading...';
+  try{
+    // Convert file to base64
+    const b64=await fileToBase64(uploadFile);
+    const payload={
+      key:SECRET, action:'uploadFlier',
+      fileName:uploadFile.name, fileData:b64, mimeType:uploadFile.type,
+      store, initials, category, uploadType, tags:uploadTags.join(','),
+      notes, replaceRowId:replaceId, folderId:DRIVE_FOLDER_ID,
+      uploadDate:new Date().toLocaleDateString()
+    };
+    const res=await postToScript(payload);
+    if(res.status==='ok'){
+      showToast('✓ Flier uploaded to library!','success');
+      cancelUpload();
+      await fetchLibrary();
+    } else { throw new Error(res.message||'Upload failed'); }
+  } catch(err){
+    showToast('Upload failed: '+err.message,'error');
+    btn.disabled=false; btn.textContent='Upload to Library';
+  }
+}
+
+function fileToBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(',')[1]);
+    r.onerror=()=>rej(new Error('File read failed'));
+    r.readAsDataURL(file);
+  });
+}
+
+async function fetchLibrary(){
+  try{
+    const bust=`${API_URL}?action=getFliers&t=${Date.now()}`;
+    const res=await fetch(bust,{cache:'no-store'});
+    const json=await res.json();
+    if(json.status==='ok'){ LIBRARY=json.data||[]; renderLibrary(); }
+    else { LIBRARY=[]; renderLibrary(); }
+  } catch(e){ LIBRARY=[]; renderLibrary(); }
+}
+
+function renderLibrary(){
+  const q=document.getElementById('librarySearch').value.toLowerCase();
+  const store=document.getElementById('libraryFilterStore').value;
+  const cat=document.getElementById('libraryFilterCat').value;
+  let items=[...LIBRARY];
+  if(store) items=items.filter(f=>f.store===store);
+  if(cat)   items=items.filter(f=>f.category===cat);
+  if(q)     items=items.filter(f=>(f.name+f.tags+f.notes+f.store+f.category).toLowerCase().includes(q));
+  document.getElementById('libraryCount').textContent=items.length;
+  const grid=document.getElementById('libraryGrid');
+  if(!items.length){ grid.innerHTML='<div style="text-align:center;padding:32px;color:var(--text-muted);">No fliers found. Upload one above!</div>'; return; }
+  grid.innerHTML=items.map(f=>{
+    const tags=(f.tags||'').split(',').filter(Boolean).map(t=>`<span class="badge badge-tag">#${esc(t.trim())}</span>`).join('');
+    const vBadge=f.uploadType==='design'
+      ?'<span class="version-badge version-design">Design only</span>'
+      :'<span class="version-badge version-content">Content update</span>';
+    return `<div class="library-card">
+      <div class="library-icon">📄</div>
+      <div class="library-info">
+        <div class="library-name">${esc(f.name)}</div>
+        <div class="library-meta">
+          <span>📍 ${esc(f.store)}</span>
+          <span>🏷 ${esc(f.category)}</span>
+          <span>👤 ${esc(f.initials)}</span>
+          <span>📅 ${esc(f.uploadDate)}</span>
+          ${vBadge}
+        </div>
+        <div class="library-tags" style="margin-top:5px;">${tags}</div>
+        ${f.notes?`<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">📝 ${esc(f.notes)}</div>`:''}
+      </div>
+      <div class="library-actions">
+        <a href="${esc(f.driveUrl)}" target="_blank" class="btn-primary" style="text-decoration:none;font-size:12px;padding:6px 12px;">↓ Open</a>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ============================================================
 // TOAST
 // ============================================================
 let toastTimer;
-function showToast(msg, type) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (type ? ' ' + type : '');
+function showToast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show'+(type?' '+type:'');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3500);
 }
 
 // ============================================================
